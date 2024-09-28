@@ -5,12 +5,14 @@ from src.order.order import OrderStatus
 
 class OrderLimit(Order):
 
-    def __init__(self, price: float, quantity: int, side: OrderSide, time: int, expiraton_time: int = None, order_id: int = None):
+    ORDER_TYPE = OrderType.LIMIT
 
-        super().__init__(quantity, side, OrderType.LIMIT, time, order_id)
+    def __init__(self, price: float, quantity: int, side: OrderSide, time: int, expiration_time: int = None, order_id: int = None):
+
+        super().__init__(quantity, side, time, order_id)
 
         self.price = price
-        self.expiration_time = expiraton_time
+        self.expiration_time = expiration_time
 
     def expire(self):
         if self.status == OrderStatus.OPEN:
