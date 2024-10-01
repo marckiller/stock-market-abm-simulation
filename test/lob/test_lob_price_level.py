@@ -1,146 +1,307 @@
 import unittest
+from typing import List
+from src.order.order import OrderType, OrderSide
 from src.order.order_limit import OrderLimit
-from src.order.order import OrderStatus, OrderSide, Order
 from src.lob.lob_price_level import PriceLevel
 
+
 class TestPriceLevel(unittest.TestCase):
-
     def setUp(self):
-        self.price_level = PriceLevel(price=100.0)
-        Order.next_id = 0
+        OrderLimit.next_id = 0
 
-    def test_add(self):
-        order1 = OrderLimit(price=100.0, quantity=10, side=OrderSide.BUY, time=1000)
-        self.price_level.add(order1)
-        self.assertEqual(self.price_level.number_of_orders, 1)
-        self.assertEqual(len(self.price_level), 1)
-        self.assertEqual(self.price_level.volume, 10)
-        self.assertIn(order1, self.price_level)
+    def test_initialization(self):
+        price_level = PriceLevel(price=100.0)
+        self.assertEqual(price_level.price, 100.0)
+        self.assertEqual(price_level.number_of_orders, 0)
+        self.assertEqual(price_level.volume, 0)
+        self.assertTrue(price_level.is_empty())
+        self.assertIsNone(price_level.last_partial_order_id)
 
-    def test_add_wrong_type_order(self):
-        from src.order.order_market import OrderMarket
-        order1 = OrderMarket(quantity=10, side=OrderSide.BUY, time=1000)
-        with self.assertRaises(ValueError):
-            self.price_level.add(order1)
+    def test_add_order(self):
+        price_level = PriceLevel(price=100.0)
+        order = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        price_level.add(order)
 
-    def test_add_wrong_price_order(self):
-        order1 = OrderLimit(price=101.0, quantity=10, side=OrderSide.BUY, time=1000)
-        with self.assertRaises(ValueError):
-            self.price_level.add(order1)
+        self.assertEqual(price_level.number_of_orders, 1)
+        self.assertEqual(price_level.volume, 50)
+        self.assertFalse(price_level.is_empty())
+        self.assertEqual(price_level.get_first(), order)
+        self.assertIsNone(price_level.last_partial_order_id)
 
-    def test_volume_after_add(self):
-        order1 = OrderLimit(price=100.0, quantity=10, side=OrderSide.BUY, time=1000)
-        order2 = OrderLimit(price=100.0, quantity=20, side=OrderSide.BUY, time=1000)
-        self.price_level.add(order1)
-        self.price_level.add(order2)
-        self.assertEqual(self.price_level.volume, 30)
+    def test_add_order_invalid_type(self):
+        price_level = PriceLevel(price=100.0)
+        order = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order.type = OrderType.MARKET  # Force invalid type
 
-    def test_length_after_add(self):
-        order1 = OrderLimit(price=100.0, quantity=10, side=OrderSide.BUY, time=1000)
-        order2 = OrderLimit(price=100.0, quantity=20, side=OrderSide.BUY, time=1000)
-        self.price_level.add(order1)
-        self.price_level.add(order2)
-        self.assertEqual(len(self.price_level), 2)
+        with self.assertRaises(ValueError) as context:
+            price_level.add(order)
+        self.assertIn("PriceLevel accepts only LIMIT orders", str(context.exception))
+
+    def test_add_order_invalid_price(self):
+        price_level = PriceLevel(price=100.0)
+        order = OrderLimit(price=101.0, quantity=50, side=OrderSide.BUY, time=1)
+
+        with self.assertRaises(ValueError) as context:
+            price_level.add(order)
+        self.assertIn("PriceLevel accepts only orders with the same price", str(context.exception))
 
     def test_remove_order(self):
-        order1 = OrderLimit(price=100.0, quantity=10, side=OrderSide.BUY, time=1000)
-        self.price_level.add(order1)
-        order2 = OrderLimit(price=100.0, quantity=20, side=OrderSide.BUY, time=1000)
-        self.price_level.add(order2)
+        price_level = PriceLevel(price=100.0)
+        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order2 = OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2)
+        price_level.add(order1)
+        price_level.add(order2)
 
-        self.price_level.remove(order1)
-        self.assertEqual(self.price_level.number_of_orders, 1)
-        self.assertEqual(len(self.price_level), 1)
-        self.assertEqual(self.price_level.volume, 20)
-        self.assertNotIn(order1, self.price_level)
-    
-    def test_remove_not_existing_order(self):
-        order = OrderLimit(order_id=1, quantity=10, side=OrderSide.BUY, price=100.5, time=1000)
-        with self.assertRaises(ValueError):
-            self.price_level.remove(order)
+        price_level.remove(order1)
+        self.assertEqual(price_level.number_of_orders, 1)
+        self.assertEqual(price_level.volume, 30)
+        self.assertEqual(price_level.get_first(), order2)
+
+        price_level.remove(order2)
+        self.assertTrue(price_level.is_empty())
+        self.assertEqual(price_level.number_of_orders, 0)
+        self.assertEqual(price_level.volume, 0)
+
+    def test_remove_order_not_found(self):
+        price_level = PriceLevel(price=100.0)
+        order = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+
+        with self.assertRaises(ValueError) as context:
+            price_level.remove(order)
+        self.assertIn("No Order with id", str(context.exception))
 
     def test_get_first(self):
-        order1 = OrderLimit(price=100.0, quantity=10, side=OrderSide.BUY, time=1000)
-        order2 = OrderLimit(price=100.0, quantity=20, side=OrderSide.BUY, time=1000)
-        self.price_level.add(order1)
-        self.price_level.add(order2)
-        first_order = self.price_level.get_first()
-        self.assertEqual(first_order, order1)
+        price_level = PriceLevel(price=100.0)
+        self.assertIsNone(price_level.get_first())
 
-    def test_get_first_order_empty(self):
-        self.assertTrue(self.price_level.is_empty())
-        order1 = OrderLimit(price=100.0, quantity=10, side=OrderSide.BUY, time=1000)
-        self.price_level.add(order1)
-        self.assertFalse(self.price_level.is_empty())
+        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order2 = OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2)
+        price_level.add(order1)
+        price_level.add(order2)
 
-    def test_pop_orders_to_meet_demand(self):
-        order1 = OrderLimit(price=100.0, quantity=10, side=OrderSide.BUY, time=1000)
-        order2 = OrderLimit(price=100.0, quantity=20, side=OrderSide.BUY, time=1001)
-        order3 = OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=1002)
-        self.price_level.add(order1)
-        self.price_level.add(order2)
-        self.price_level.add(order3)
+        self.assertEqual(price_level.get_first(), order1)
 
-        #demand = 40
-        orders_to_match = self.price_level.pop_orders_to_meet_demand(40)
-        self.assertEqual(len(orders_to_match), 3)
-        self.assertEqual(orders_to_match[0], (order1, 10))
-        self.assertEqual(orders_to_match[1], (order2, 20))
-        self.assertEqual(orders_to_match[2], (order3, 10))
-        self.assertEqual(order1.quantity, 10)
-        self.assertEqual(order2.quantity, 20)
-        self.assertEqual(order3.quantity, 20) #las orders quantity should be reduced to 20
-        
-        self.assertEqual(self.price_level.number_of_orders, 1)
-        self.assertEqual(self.price_level.volume, 20)
+    def test_iteration(self):
+        price_level = PriceLevel(price=100.0)
+        orders = [
+            OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1),
+            OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2),
+            OrderLimit(price=100.0, quantity=20, side=OrderSide.BUY, time=3),
+        ]
+        for order in orders:
+            price_level.add(order)
 
-    def test_pop_orders_to_meet_demand_not_enough_orders(self):
-        order1 = OrderLimit(price=100.0, quantity=10, side=OrderSide.BUY, time=1000)
-        order2 = OrderLimit(price=100.0, quantity=20, side=OrderSide.BUY, time=1001)
-        order3 = OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=1002)
+        for idx, order in enumerate(price_level):
+            self.assertEqual(order, orders[idx])
 
-        self.price_level.add(order1)
-        self.price_level.add(order2)
-        self.price_level.add(order3)
+    def test_length(self):
+        price_level = PriceLevel(price=100.0)
+        self.assertEqual(len(price_level), 0)
 
-        #demand = 70
-        orders_to_match = self.price_level.pop_orders_to_meet_demand(70)
-        self.assertEqual(len(orders_to_match), 3)
-        self.assertEqual(orders_to_match[0], (order1, 10))
-        self.assertEqual(orders_to_match[1], (order2, 20))
-        self.assertEqual(orders_to_match[2], (order3, 30))
+        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        price_level.add(order1)
+        self.assertEqual(len(price_level), 1)
 
-        self.assertEqual(order1.quantity, 10)
-        self.assertEqual(order2.quantity, 20)
-        self.assertEqual(order3.quantity, 30)
+        order2 = OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2)
+        price_level.add(order2)
+        self.assertEqual(len(price_level), 2)
 
-        self.assertEqual(self.price_level.number_of_orders, 0)
-        self.assertEqual(self.price_level.volume, 0)
-        self.assertTrue(self.price_level.is_empty())
-        self.assertEqual(len(self.price_level), 0)
+    def test_pop_orders_to_meet_demand_full_fill(self):
+        price_level = PriceLevel(price=100.0)
+        orders = [
+            OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1),
+            OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2),
+        ]
+        for order in orders:
+            price_level.add(order)
 
-    def test_len_method(self):
-        order1 = OrderLimit(price=100.0, quantity=10, side=OrderSide.BUY, time=1000)
-        order2 = OrderLimit(price=100.0, quantity=20, side=OrderSide.BUY, time=1001)
-        self.price_level.add(order1)
-        self.price_level.add(order2)
-        self.assertEqual(len(self.price_level), 2)
+        fulfilled_orders = price_level.pop_orders_to_meet_demand(80)
+        self.assertEqual(len(fulfilled_orders), 2)
+        self.assertEqual(fulfilled_orders[0], (orders[0], 50))
+        self.assertEqual(fulfilled_orders[1], (orders[1], 30))
+        self.assertEqual(price_level.number_of_orders, 0)
+        self.assertEqual(price_level.volume, 0)
+        self.assertIsNone(price_level.last_partial_order_id)
+        self.assertTrue(price_level.is_empty())
 
-    def test_repr_method(self):
-        order1 = OrderLimit(price=100.0, quantity=10, side=OrderSide.BUY, time=1000)
-        order2 = OrderLimit(price=100.0, quantity=20, side=OrderSide.BUY, time=1001)
-        self.price_level.add(order1)
-        self.price_level.add(order2)
-        self.assertEqual(repr(self.price_level), "PriceLevel(price=100.0, orders=2, volume=30)")
+    def test_pop_orders_to_meet_demand_partial_fill(self):
+        price_level = PriceLevel(price=100.0)
+        order1 = OrderLimit(price=100.0, quantity=100, side=OrderSide.BUY, time=1)
+        price_level.add(order1)
+
+        fulfilled_orders = price_level.pop_orders_to_meet_demand(60)
+        self.assertEqual(len(fulfilled_orders), 1)
+        self.assertEqual(fulfilled_orders[0], (order1, 60))
+        self.assertEqual(price_level.number_of_orders, 0)
+        self.assertEqual(price_level.volume, 0)
+        self.assertEqual(price_level.last_partial_order_id, order1.order_id)
+        self.assertTrue(price_level.is_empty())
+
+        remaining_order = OrderLimit(
+            price=100.0,
+            quantity=40,
+            side=OrderSide.BUY,
+            time=1,
+            order_id=order1.order_id,
+        )
+
+        price_level.add(remaining_order)
+        self.assertEqual(price_level.number_of_orders, 1)
+        self.assertEqual(price_level.volume, 40)
+        self.assertIsNone(price_level.last_partial_order_id)
+        self.assertFalse(price_level.is_empty())
+        self.assertEqual(price_level.get_first(), remaining_order)
+
+    def test_pop_orders_to_meet_demand_exact_fill(self):
+        price_level = PriceLevel(price=100.0)
+        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order2 = OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2)
+        price_level.add(order1)
+        price_level.add(order2)
+
+        fulfilled_orders = price_level.pop_orders_to_meet_demand(80)
+        self.assertEqual(len(fulfilled_orders), 2)
+        self.assertEqual(fulfilled_orders[0], (order1, 50))
+        self.assertEqual(fulfilled_orders[1], (order2, 30))
+        self.assertEqual(price_level.number_of_orders, 0)
+        self.assertEqual(price_level.volume, 0)
+        self.assertIsNone(price_level.last_partial_order_id)
+        self.assertTrue(price_level.is_empty())
+
+    def test_pop_orders_to_meet_demand_more_than_available(self):
+        price_level = PriceLevel(price=100.0)
+        orders = [
+            OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1),
+            OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2),
+        ]
+        for order in orders:
+            price_level.add(order)
+
+        fulfilled_orders = price_level.pop_orders_to_meet_demand(100)
+        self.assertEqual(len(fulfilled_orders), 2)
+        self.assertEqual(fulfilled_orders[0], (orders[0], 50))
+        self.assertEqual(fulfilled_orders[1], (orders[1], 30))
+        self.assertEqual(price_level.number_of_orders, 0)
+        self.assertEqual(price_level.volume, 0)
+        self.assertTrue(price_level.is_empty())
+        self.assertIsNone(price_level.last_partial_order_id)
+
+    def test_pop_orders_to_meet_demand_no_orders(self):
+        price_level = PriceLevel(price=100.0)
+        fulfilled_orders = price_level.pop_orders_to_meet_demand(50)
+        self.assertEqual(len(fulfilled_orders), 0)
+        self.assertEqual(price_level.number_of_orders, 0)
+        self.assertEqual(price_level.volume, 0)
+        self.assertTrue(price_level.is_empty())
+        self.assertIsNone(price_level.last_partial_order_id)
+
+    def test_pop_orders_to_meet_demand_zero_demand(self):
+        price_level = PriceLevel(price=100.0)
+        order = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        price_level.add(order)
+
+        fulfilled_orders = price_level.pop_orders_to_meet_demand(0)
+        self.assertEqual(len(fulfilled_orders), 0)
+        self.assertEqual(price_level.number_of_orders, 1)
+        self.assertEqual(price_level.volume, 50)
+        self.assertFalse(price_level.is_empty())
+        self.assertIsNone(price_level.last_partial_order_id)
 
     def test_get_volume(self):
-        order1 = OrderLimit(price=100.0, quantity=10, side=OrderSide.BUY, time=1000)
-        order2 = OrderLimit(price=100.0, quantity=20, side=OrderSide.BUY, time=1001)
-        self.price_level.add(order1)
-        self.assertEqual(self.price_level.get_volume(), 10)
-        self.price_level.add(order2)
-        self.assertEqual(self.price_level.get_volume(), 30)
+        price_level = PriceLevel(price=100.0)
+        self.assertEqual(price_level.get_volume(), 0)
 
-        
+        order1 = OrderLimit(price=100.0, quantity=40, side=OrderSide.BUY, time=1)
+        price_level.add(order1)
+        self.assertEqual(price_level.get_volume(), 40)
 
+        order2 = OrderLimit(price=100.0, quantity=60, side=OrderSide.BUY, time=2)
+        price_level.add(order2)
+        self.assertEqual(price_level.get_volume(), 100)
 
+    def test_last_partial_order_id_reset(self):
+        price_level = PriceLevel(price=100.0)
+        order = OrderLimit(price=100.0, quantity=100, side=OrderSide.BUY, time=1)
+        price_level.add(order)
+
+        fulfilled_orders = price_level.pop_orders_to_meet_demand(30)
+        self.assertEqual(price_level.last_partial_order_id, order.order_id)
+
+        remaining_order = OrderLimit(
+            price=100.0,
+            quantity=70,
+            side=OrderSide.BUY,
+            time=1,
+            order_id=order.order_id,
+        )
+
+        price_level.add(remaining_order)
+        self.assertIsNone(price_level.last_partial_order_id)
+
+        fulfilled_orders = price_level.pop_orders_to_meet_demand(70)
+        self.assertEqual(len(fulfilled_orders), 1)
+        self.assertEqual(fulfilled_orders[0], (remaining_order, 70))
+        self.assertEqual(price_level.number_of_orders, 0)
+        self.assertEqual(price_level.volume, 0)
+        self.assertIsNone(price_level.last_partial_order_id)
+
+    def test_add_same_order_id_new_order(self):
+        price_level = PriceLevel(price=100.0)
+        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1, order_id=1)
+        order2 = OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2, order_id=1)  # Same ID
+
+        price_level.add(order1)
+        price_level.add(order2)
+
+        self.assertEqual(price_level.number_of_orders, 2)
+        self.assertEqual(price_level.volume, 80)
+        self.assertEqual(len(price_level.orders), 2)
+        self.assertEqual(price_level.orders[0], order1)
+        self.assertEqual(price_level.orders[1], order2)
+
+    def test_add_partial_order_with_different_id(self):
+        price_level = PriceLevel(price=100.0)
+        order = OrderLimit(price=100.0, quantity=100, side=OrderSide.BUY, time=1, order_id=1)
+        order2 = OrderLimit(price=100.0, quantity=40, side=OrderSide.BUY, time=1, order_id=10)
+        price_level.add(order)
+        price_level.add(order2)
+
+        self.assertEqual(len(price_level), 2)
+        self.assertEqual(price_level.volume, 140)
+
+        fulfilled_orders = price_level.pop_orders_to_meet_demand(60)
+        self.assertEqual(price_level.last_partial_order_id, 1)
+        self.assertEqual(len(price_level), 1)
+        self.assertEqual(price_level.volume, 40)
+
+        #Simulate matching engine adjusting order quantity
+        #but accidentally assigns a different order_id
+        remaining_order = OrderLimit(
+            price=100.0,
+            quantity=40,
+            side=OrderSide.BUY,
+            time=1,
+            order_id=2,
+        )
+
+        price_level.add(remaining_order)
+        self.assertEqual(price_level.number_of_orders, 2)
+        self.assertEqual(price_level.volume, 80)
+        self.assertEqual(price_level.orders[-1], remaining_order)
+        self.assertNotEqual(price_level.orders[0], remaining_order)
+        self.assertIsNone(price_level.last_partial_order_id)
+
+    def test_order_equality(self):
+        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order2 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        self.assertNotEqual(order1, order2)
+
+        order3 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1, order_id=order1.order_id)
+        self.assertEqual(order1, order3)
+
+    def test_repr(self):
+        price_level = PriceLevel(price=100.0)
+        order = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        price_level.add(order)
+        repr_str = repr(price_level)
+        self.assertIn("PriceLevel(price=100.0, orders=1, volume=50)", repr_str)

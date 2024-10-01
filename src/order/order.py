@@ -15,7 +15,6 @@ class OrderStatus(Enum):
     EXPIRED = auto()
 
 class Order:
-
     ORDER_TYPE = None  #Must be defined in child class
 
     next_id = 0
