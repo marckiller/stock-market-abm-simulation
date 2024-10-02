@@ -19,6 +19,7 @@ class PriceLevel:
 
         if order.order_id == self.last_partial_order_id:
             self.orders.appendleft(order)
+            
         else:
             self.orders.append(order)
 

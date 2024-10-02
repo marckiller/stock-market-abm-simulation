@@ -9,6 +9,9 @@ class OrderLimit(Order):
 
     def __init__(self, price: float, quantity: int, side: OrderSide, time: int, expiration_time: int = None, order_id: int = None):
 
+        if price <= 0:
+            raise ValueError("Price must be positive")
+
         super().__init__(quantity, side, time, order_id)
 
         self.price = price

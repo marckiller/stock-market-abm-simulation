@@ -138,3 +138,7 @@ class TestOrderLimit(unittest.TestCase):
         self.assertEqual(order2.order_id, 0)
         self.assertEqual(order3.order_id, 1)
         self.assertEqual(Order.next_id, 2)
+
+    def test_negative_price(self):
+        with self.assertRaises(ValueError):
+            OrderLimit(price=-100.0, quantity=10, side=OrderSide.BUY, time=2200)
