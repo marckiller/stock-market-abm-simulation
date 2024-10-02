@@ -18,7 +18,7 @@ class TestOrderLimit(unittest.TestCase):
         self.assertEqual(order.timestamp, 1000)
         self.assertIsNone(order.expiration_time)
         self.assertEqual(order.status, OrderStatus.OPEN)
-        self.assertEqual(OrderLimit.next_id, 1)
+        self.assertEqual(Order.next_id, 1)
 
     def test_order_limit_initialization_with_expiration(self):
         expiration = 1600
@@ -31,7 +31,7 @@ class TestOrderLimit(unittest.TestCase):
         self.assertEqual(order.timestamp, 1050)
         self.assertEqual(order.expiration_time, expiration)
         self.assertEqual(order.status, OrderStatus.OPEN)
-        self.assertEqual(OrderLimit.next_id, 1)
+        self.assertEqual(Order.next_id, 1)
 
     def test_order_limit_execute_partial(self):
         order = OrderLimit(price=102.0, quantity=10, side=OrderSide.BUY, time=1100)
@@ -128,7 +128,7 @@ class TestOrderLimit(unittest.TestCase):
         self.assertEqual(order1.order_id, 0)
         self.assertEqual(order2.order_id, 1)
         self.assertEqual(order3.order_id, 2)
-        self.assertEqual(OrderLimit.next_id, 3)
+        self.assertEqual(Order.next_id, 3)
 
     def test_order_limit_id_with_manual_id(self):
         order1 = OrderLimit(price=121.0, quantity=10, side=OrderSide.BUY, time=2050, order_id=100)
@@ -137,4 +137,8 @@ class TestOrderLimit(unittest.TestCase):
         self.assertEqual(order1.order_id, 100)
         self.assertEqual(order2.order_id, 0)
         self.assertEqual(order3.order_id, 1)
-        self.assertEqual(OrderLimit.next_id, 2)
+        self.assertEqual(Order.next_id, 2)
+
+    def test_negative_price(self):
+        with self.assertRaises(ValueError):
+            OrderLimit(price=-100.0, quantity=10, side=OrderSide.BUY, time=2200)

@@ -58,3 +58,9 @@ class Order:
 
     def is_filled(self):
         return self.status == OrderStatus.FILLED
+    
+    def __eq__(self, other):
+        
+        if isinstance(other, Order):
+            return self.order_id == other.order_id
+        return False

@@ -68,3 +68,10 @@ class TestOrderBehavior(unittest.TestCase):
         order = OrderLimit(price=100.0, quantity=10, side=OrderSide.BUY, time=1000)
         order.cancel()
         self.assertFalse(order.is_filled())
+
+    def test_eq(self):
+        from src.order.order_limit import OrderLimit 
+        order1 = OrderLimit(price=10.0, quantity=10, side=OrderSide.BUY, time=1000)
+        order2 = OrderLimit(price=10.0, quantity=10, side=OrderSide.BUY, time=1000)
+        self.assertFalse(order1 == order2)
+        self.assertTrue(order1 == order1)
