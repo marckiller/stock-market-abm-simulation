@@ -1,12 +1,12 @@
 import unittest
-from src.order.order import OrderSide, OrderType, OrderStatus
+from src.order.order import OrderSide, OrderType, OrderStatus, Order
 from src.order.order_market import OrderMarket
 
 class TestOrderMarket(unittest.TestCase):
 
     def setUp(self):
-        import src.order.order
-        src.order.order.Order.next_id = 0
+        Order.next_id = 0
+        OrderMarket.next_id = 0
 
     def test_order_market_initialization(self):
         order = OrderMarket(quantity=15, side=OrderSide.SELL, time=1000)
@@ -16,7 +16,7 @@ class TestOrderMarket(unittest.TestCase):
         self.assertEqual(order.type, OrderType.MARKET)
         self.assertEqual(order.timestamp, 1000)
         self.assertEqual(order.status, OrderStatus.OPEN)
-        self.assertEqual(OrderMarket.next_id, 1)
+        self.assertEqual(Order.next_id, 1)
 
     def test_order_market_execute_partial(self):
         order = OrderMarket(quantity=15, side=OrderSide.SELL, time=1050)
@@ -102,7 +102,7 @@ class TestOrderMarket(unittest.TestCase):
         self.assertEqual(order1.order_id, 0)
         self.assertEqual(order2.order_id, 1)
         self.assertEqual(order3.order_id, 2)
-        self.assertEqual(OrderMarket.next_id, 3)
+        self.assertEqual(Order.next_id, 3)
 
     def test_order_market_id_with_manual_id(self):
         order1 = OrderMarket(quantity=15, side=OrderSide.SELL, time=1900, order_id=100)
@@ -111,4 +111,4 @@ class TestOrderMarket(unittest.TestCase):
         self.assertEqual(order1.order_id, 100)
         self.assertEqual(order2.order_id, 0)
         self.assertEqual(order3.order_id, 1)
-        self.assertEqual(OrderMarket.next_id, 2)
+        self.assertEqual(Order.next_id, 2)
