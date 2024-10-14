@@ -4,7 +4,7 @@ from src.market.market_trading_account import TradingAccount
 class TestTradingAccount(unittest.TestCase):
     
     def setUp(self):
-        self.account = TradingAccount()
+        self.account = TradingAccount(1)
     
     def test_add_funds(self):
         self.account.add_funds(5000.0)

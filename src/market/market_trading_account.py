@@ -2,7 +2,8 @@ from typing import Dict, Any, Optional
 
 class TradingAccount:
 
-    def __init__(self):
+    def __init__(self, agent_id: int) -> None:
+        self.agent_id = agent_id
         self.balance: float = 0.0
         self.pending_orders: Dict[int, Dict[str, Any]] = {}
     
