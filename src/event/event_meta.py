@@ -1,6 +1,6 @@
 from abc import ABCMeta
-from src.events.event_registry import EventRegistry
-from src.events.event_types import EventType
+from src.event.event_registry import EventRegistry
+from src.event.event_types import EventType
 
 class EventMeta(ABCMeta):
 

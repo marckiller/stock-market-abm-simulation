@@ -1,5 +1,5 @@
 import unittest
-from src.events.event_types import EventType
+from src.event.event_types import EventType
 
 class TestEventType(unittest.TestCase):
     

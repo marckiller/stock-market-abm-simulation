@@ -1,7 +1,7 @@
 import unittest
-from src.events.event import Event
-from src.events.event_types import EventType
-from src.events.event_csv_manager import EventCsvManager
+from src.event.event import Event
+from src.event.event_types import EventType
+from src.event.event_csv_manager import EventCsvManager
 
 class SampleObject:
 

@@ -1,6 +1,6 @@
 import unittest
-from src.events.event_types import EventType
-from src.events.event import Event
+from src.event.event_types import EventType
+from src.event.event import Event
 
 class ConcreteEvent(Event):
 
