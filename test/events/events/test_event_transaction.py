@@ -1,7 +1,7 @@
 import unittest
 from src.event.event_types import EventType
 from src.event.event_csv_manager import EventCsvManager
-from src.event.events.event_transaction import Transaction
+from src.event.events.event_transaction import EventTransaction
 
 class TestTransactionEvent(unittest.TestCase):
 
@@ -17,7 +17,7 @@ class TestTransactionEvent(unittest.TestCase):
         self.id_sell_order = 202
         self.event_id = 999
 
-        self.transaction = Transaction(
+        self.transaction = EventTransaction(
             timestamp=self.timestamp,
             trigger_event_id=self.trigger_event_id,
             ticker=self.ticker,
@@ -79,7 +79,7 @@ class TestTransactionEvent(unittest.TestCase):
         self.assertEqual(decoded_transaction.type, EventType.TRANSACTION)
 
     def test_ordering(self):
-        earlier_transaction = Transaction(
+        earlier_transaction = EventTransaction(
             timestamp=self.timestamp - 1,
             trigger_event_id=self.trigger_event_id,
             ticker=self.ticker,

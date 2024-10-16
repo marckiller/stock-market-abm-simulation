@@ -1,7 +1,7 @@
 from src.event.event import Event
 from src.event.event_types import EventType
 
-class Transaction(Event):
+class EventTransaction(Event):
 
     type = EventType.TRANSACTION
     executable = False
