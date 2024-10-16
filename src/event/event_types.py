@@ -26,8 +26,6 @@ class EventType(Enum):
     ORDER_CANCELED = auto()
     ORDER_EXECUTED = auto()
     ORDER_REJECTED = auto()
-    ORDER_ACCEPTED = auto()
-    ORDER_EXPIRED = auto()
     TRANSACTION = auto()
 
     #Market: executable events
