@@ -18,7 +18,6 @@ class TestOrderAddedEvent(unittest.TestCase):
             trigger_event_id=self.trigger_event_id,
             ticker=self.ticker,
             order_id=self.order_id,
-            agent_id=self.agent_id,
             id=self.event_id
         )
 
@@ -27,14 +26,13 @@ class TestOrderAddedEvent(unittest.TestCase):
         self.assertEqual(self.order_added.trigger_event_id, self.trigger_event_id)
         self.assertEqual(self.order_added.ticker, self.ticker)
         self.assertEqual(self.order_added.order_id, self.order_id)
-        self.assertEqual(self.order_added.agent_id, self.agent_id)
         self.assertEqual(self.order_added.id, self.event_id)
         self.assertEqual(self.order_added.type, EventType.ORDER_ADDED)
         self.assertFalse(self.order_added.executable)
 
     def test_create_message(self):
         expected_message = (
-            f"Order {self.order_id} added for {self.ticker} by agent {self.agent_id}."
+            f" {self.ticker}: Order {self.order_id} added."
         )
         self.assertEqual(self.order_added.create_message(), expected_message)
         self.assertEqual(self.order_added.message, expected_message)
@@ -42,7 +40,7 @@ class TestOrderAddedEvent(unittest.TestCase):
     def test_csv_attributes(self):
         expected_attributes = [
             "type", "timestamp", "id", "trigger_event_id", "ticker",
-            "order_id", "agent_id"
+            "order_id"
         ]
         self.assertEqual(EventOrderAdded.csv_attributes(), expected_attributes)
 
@@ -55,7 +53,6 @@ class TestOrderAddedEvent(unittest.TestCase):
         self.assertEqual(decoded_event.trigger_event_id, self.trigger_event_id)
         self.assertEqual(decoded_event.ticker, self.ticker)
         self.assertEqual(decoded_event.order_id, self.order_id)
-        self.assertEqual(decoded_event.agent_id, self.agent_id)
         self.assertEqual(decoded_event.id, self.event_id)
         self.assertEqual(decoded_event.type, EventType.ORDER_ADDED)
         self.assertFalse(decoded_event.executable)
