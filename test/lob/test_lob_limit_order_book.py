@@ -12,7 +12,7 @@ class TestLimitOrderBook(unittest.TestCase):
 
     def test_add_order(self):
         lob = LimitOrderBook()
-        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
         lob.add(order1)
 
         self.assertEqual(lob.best_bid(), 100.0)
@@ -23,9 +23,9 @@ class TestLimitOrderBook(unittest.TestCase):
     def test_add_multiple_orders(self):
         lob = LimitOrderBook()
         orders = [
-            OrderLimit(price=101.0, quantity=50, side=OrderSide.BUY, time=1),
-            OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2),
-            OrderLimit(price=102.0, quantity=20, side=OrderSide.BUY, time=3),
+            OrderLimit(ticker='AAPL', price=101.0, quantity=50, side=OrderSide.BUY, time=1),
+            OrderLimit(ticker='AAPL', price=100.0, quantity=30, side=OrderSide.BUY, time=2),
+            OrderLimit(ticker='AAPL', price=102.0, quantity=20, side=OrderSide.BUY, time=3),
         ]
         for order in orders:
             lob.add(order)
@@ -36,8 +36,8 @@ class TestLimitOrderBook(unittest.TestCase):
 
     def test_remove_order_by_id(self):
         lob = LimitOrderBook()
-        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.SELL, time=1)
-        order2 = OrderLimit(price=101.0, quantity=30, side=OrderSide.SELL, time=2)
+        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.SELL, time=1)
+        order2 = OrderLimit(ticker='AAPL', price=101.0, quantity=30, side=OrderSide.SELL, time=2)
         lob.add(order1)
         lob.add(order2)
 
@@ -49,7 +49,7 @@ class TestLimitOrderBook(unittest.TestCase):
 
     def test_pop_orders_from_given_price_level_to_meet_demand(self):
         lob = LimitOrderBook()
-        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
         lob.add(order1)
 
         orders = lob.pop_orders_from_given_price_level_to_meet_demand(price=100.0, side=OrderSide.BUY, demand=30)
@@ -61,7 +61,7 @@ class TestLimitOrderBook(unittest.TestCase):
 
     def test_pop_orders_with_partial_fill(self):
         lob = LimitOrderBook()
-        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.SELL, time=1)
+        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.SELL, time=1)
         lob.add(order1)
 
         orders = lob.pop_orders_from_given_price_level_to_meet_demand(price=100.0, side=OrderSide.SELL, demand=70)
@@ -73,7 +73,7 @@ class TestLimitOrderBook(unittest.TestCase):
 
     def test_order_map_consistency(self):
         lob = LimitOrderBook()
-        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
         lob.add(order1)
 
         self.assertIn(order1.order_id, lob.order_map)
@@ -85,8 +85,8 @@ class TestLimitOrderBook(unittest.TestCase):
         self.assertIsNone(lob.best_bid())
         self.assertIsNone(lob.best_ask())
 
-        order_buy = OrderLimit(price=99.0, quantity=50, side=OrderSide.BUY, time=1)
-        order_sell = OrderLimit(price=101.0, quantity=50, side=OrderSide.SELL, time=1)
+        order_buy = OrderLimit(ticker='AAPL', price=99.0, quantity=50, side=OrderSide.BUY, time=1)
+        order_sell = OrderLimit(ticker='AAPL', price=101.0, quantity=50, side=OrderSide.SELL, time=1)
         lob.add(order_buy)
         lob.add(order_sell)
 
@@ -95,7 +95,7 @@ class TestLimitOrderBook(unittest.TestCase):
 
     def test_get_order(self):
         lob = LimitOrderBook()
-        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
         lob.add(order1)
 
         retrieved_order = lob.get_order(order1.order_id)
@@ -108,8 +108,8 @@ class TestLimitOrderBook(unittest.TestCase):
 
     def test_add_order_with_same_price(self):
         lob = LimitOrderBook()
-        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.SELL, time=1)
-        order2 = OrderLimit(price=100.0, quantity=30, side=OrderSide.SELL, time=2)
+        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.SELL, time=1)
+        order2 = OrderLimit(ticker='AAPL', price=100.0, quantity=30, side=OrderSide.SELL, time=2)
         lob.add(order1)
         lob.add(order2)
 
@@ -120,8 +120,8 @@ class TestLimitOrderBook(unittest.TestCase):
     def test_pop_orders_with_multiple_price_levels(self):
         lob = LimitOrderBook()
         orders = [
-            OrderLimit(price=101.0, quantity=50, side=OrderSide.BUY, time=1),
-            OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2),
+            OrderLimit(ticker='AAPL', price=101.0, quantity=50, side=OrderSide.BUY, time=1),
+            OrderLimit(ticker='AAPL', price=100.0, quantity=30, side=OrderSide.BUY, time=2),
         ]
         for order in orders:
             lob.add(order)
@@ -133,7 +133,7 @@ class TestLimitOrderBook(unittest.TestCase):
 
     def test_partial_fill_and_readd(self):
         lob = LimitOrderBook()
-        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.SELL, time=1)
+        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.SELL, time=1)
         lob.add(order1)
 
         #Pop 30 units from the order
@@ -143,14 +143,14 @@ class TestLimitOrderBook(unittest.TestCase):
         self.assertEqual(len(lob.sorted_asks), 1) #price level is keeped because partial order is expected back
 
         #Simulate matching engine updating the order and re-adding it
-        remaining_order = OrderLimit(price=100.0, quantity=20, side=OrderSide.SELL, time=1, order_id=order1.order_id)
+        remaining_order = OrderLimit(ticker='AAPL', price=100.0, quantity=20, side=OrderSide.SELL, time=1, order_id=order1.order_id)
         lob.add(remaining_order)
         self.assertEqual(lob.get_price_level_volume(100.0, OrderSide.SELL), 20)
         self.assertEqual(len(lob.sorted_asks), 1)
 
     def test_remove_price_level_after_order_removal(self):
         lob = LimitOrderBook()
-        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
         lob.add(order1)
         lob.remove_order_by_id(order1.order_id)
 
@@ -164,19 +164,19 @@ class TestLimitOrderBook(unittest.TestCase):
 
     def test_order_map_after_partial_fill(self):
         lob = LimitOrderBook()
-        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
         lob.add(order1)
 
         orders = lob.pop_orders_from_given_price_level_to_meet_demand(price=100.0, side=OrderSide.BUY, demand=30)
         self.assertNotIn(order1.order_id, lob.order_map)
 
-        remaining_order = OrderLimit(price=100.0, quantity=20, side=OrderSide.BUY, time=1, order_id=order1.order_id)
+        remaining_order = OrderLimit(ticker='AAPL', price=100.0, quantity=20, side=OrderSide.BUY, time=1, order_id=order1.order_id)
         lob.add(remaining_order)
         self.assertIn(order1.order_id, lob.order_map)
 
     def test_repr(self):
         lob = LimitOrderBook()
-        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
         lob.add(order1)
         repr_str = repr(lob)
         self.assertIn("LimitOrderBook(bids=1, asks=0)", repr_str)
@@ -184,9 +184,9 @@ class TestLimitOrderBook(unittest.TestCase):
     def test_negative_prices_in_sorted_bids(self):
         lob = LimitOrderBook()
         orders = [
-            OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1),
-            OrderLimit(price=101.0, quantity=30, side=OrderSide.BUY, time=2),
-            OrderLimit(price=99.0, quantity=20, side=OrderSide.BUY, time=3),
+            OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1),
+            OrderLimit(ticker='AAPL', price=101.0, quantity=30, side=OrderSide.BUY, time=2),
+            OrderLimit(ticker='AAPL', price=99.0, quantity=20, side=OrderSide.BUY, time=3),
         ]
         for order in orders:
             lob.add(order)
@@ -198,12 +198,12 @@ class TestLimitOrderBook(unittest.TestCase):
     def test_add_order_with_negative_price(self):
         lob = LimitOrderBook()
         with self.assertRaises(ValueError):
-            order = OrderLimit(price=-100.0, quantity=50, side=OrderSide.BUY, time=1)
+            order = OrderLimit(ticker='AAPL', price=-100.0, quantity=50, side=OrderSide.BUY, time=1)
             lob.add(order)
 
     def test_get_price_level_volume_with_negative_prices(self):
         lob = LimitOrderBook()
-        order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=1)
+        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
         lob.add(order1)
         volume = lob.get_price_level_volume(100.0, OrderSide.BUY)
         self.assertEqual(volume, 50)

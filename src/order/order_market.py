@@ -6,5 +6,5 @@ class OrderMarket(Order):
 
     ORDER_TYPE = OrderType.MARKET
 
-    def __init__(self, quantity: int, side: OrderSide, time: int, order_id: int = None):
-        super().__init__(quantity, side, time, order_id)
+    def __init__(self,ticker: str, quantity: int, side: OrderSide, time: int, order_id: int = None):
+        super().__init__(ticker, quantity, side, time, order_id)
