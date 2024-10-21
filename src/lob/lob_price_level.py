@@ -28,11 +28,12 @@ class PriceLevel:
         self.number_of_orders += 1
         self.volume += order.quantity
 
-    def remove(self, order: OrderLimit) -> None:
+    def remove(self, order: OrderLimit) -> OrderLimit:
         try:
             self.orders.remove(order)
             self.number_of_orders -= 1
             self.volume -= order.quantity
+            return order
         except ValueError:
             raise ValueError(f"No Order with id {order.order_id} in PriceLevel {self.price}")
 
