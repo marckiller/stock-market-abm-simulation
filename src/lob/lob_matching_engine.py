@@ -5,94 +5,188 @@ from src.order.order_limit import OrderLimit
 from src.order.order_market import OrderMarket
 from src.order.order import OrderSide
 
+from src.event.event import Event
+from src.event.events.event_transaction import EventTransaction
+from src.event.events.event_order_executed import EventOrderExecuted
+from src.event.events.event_order_modified import EventOrderModified
+
 class MatchingEngine:
-    def __init__(self):
-        self.transactions = [] #TODO: No need of keeping transaciton history here
-                               # Simulation will keep track of transactions by recieveing and saving Event objects
-                               # Now this structure is just for testing purposes
 
-    def process_order(self, order: Order, limit_order_book: LimitOrderBook):
-        if isinstance(order, OrderLimit):
-            self.process_limit_order(order, limit_order_book)
-        elif isinstance(order, OrderMarket):
-            self.process_market_order(order, limit_order_book)
-        else:
-            raise ValueError("Unknown order type")
-
-    def process_limit_order(self, order: OrderLimit, limit_order_book: LimitOrderBook):
-        opposite_side = OrderSide.SELL if order.side == OrderSide.BUY else OrderSide.BUY
-        best_price = limit_order_book.best_ask() if order.side == OrderSide.BUY else limit_order_book.best_bid()
-
-        while order.quantity > 0 and best_price is not None:
-
-            if (order.side == OrderSide.BUY and order.price >= best_price) or \
-               (order.side == OrderSide.SELL and order.price <= best_price):
-
-                orders_to_match = limit_order_book.pop_orders_from_given_price_level_to_meet_demand(
-                    price=best_price,
-                    side=opposite_side,
-                    demand=order.quantity
-                )
-
-                for matched_order, matched_quantity in orders_to_match:
-
-                    self.transactions.append({
-                        'buy_order_id': order.order_id if order.side == OrderSide.BUY else matched_order.order_id,
-                        'sell_order_id': matched_order.order_id if order.side == OrderSide.BUY else order.order_id,
-                        'price': best_price,
-                        'quantity': matched_quantity,
-                        'time': order.timestamp 
-                    })
-                    print(f"Matched {matched_quantity} of Order {matched_order.order_id} with Order {order.order_id} at price {best_price}")
-
-                    order.quantity -= matched_quantity
-
-                    if matched_quantity < matched_order.quantity:
-                        remaining_quantity = matched_order.quantity - matched_quantity
-                        matched_order.quantity = remaining_quantity
-                        limit_order_book.add(matched_order)
-                        print(f"Updated Order {matched_order.order_id} with remaining quantity {matched_order.quantity} to the book.")
-
-                best_price = limit_order_book.best_ask() if order.side == OrderSide.BUY else limit_order_book.best_bid()
-
+    def process_order(self, order: Order, lob: LimitOrderBook, timestamp: int, trigger_event_id: int) -> List[Event]:
+        if isinstance(order, OrderMarket):
+            if order.side == OrderSide.BUY:
+                return self.process_market_buy_order(order, lob, timestamp, trigger_event_id)
             else:
-                break  
+                return self.process_market_sell_order(order, lob, timestamp, trigger_event_id)
+        elif isinstance(order, OrderLimit):
+            if order.side == OrderSide.BUY:
+                return self.process_limit_buy_order(order, lob, timestamp, trigger_event_id)
+            else:
+                return self.process_limit_sell_order(order, lob, timestamp, trigger_event_id)
+        else:
+            raise ValueError(f"Unsupported order type: {order}")
+    
+    def process_market_buy_order(self, order: OrderMarket, lob: LimitOrderBook, timestamp: int, trigger_event_id: int) -> List[Event]:
+        events = []
+        best_ask = lob.best_ask()
 
-        if order.quantity > 0:
-            limit_order_book.add(order)
-            print(f"Added remaining Order {order.order_id} with quantity {order.quantity} to the book.")
+        while order.quantity > 0 and best_ask is not None:
+            order_ask, ask_events = lob.pop_top_ask_at_price(best_ask, timestamp, trigger_event_id)
+            events += ask_events
+            price = order_ask.price
+            quantity = min(order.quantity, order_ask.quantity)
+            events.append(EventTransaction(timestamp, trigger_event_id, order_ask.ticker, quantity, price, order.agent_id, order_ask.agent_id, order.order_id, order_ask.order_id))
+            order.quantity -= quantity
+            order_ask.quantity -= quantity
 
-    def process_market_order(self, order: OrderMarket, limit_order_book: LimitOrderBook):
-        opposite_side = OrderSide.SELL if order.side == OrderSide.BUY else OrderSide.BUY
-        best_price = limit_order_book.best_ask() if order.side == OrderSide.BUY else limit_order_book.best_bid()
+            if order_ask.quantity > 0:
+                events.append(EventOrderModified(
+                    timestamp, trigger_event_id, order_ask.ticker,
+                    order_ask.order_id, order_ask.quantity + quantity, order_ask.quantity
+                ))
+                events += lob.add_ask(order_ask, timestamp, trigger_event_id)
+            else:
+                events.append(EventOrderExecuted(
+                    timestamp, trigger_event_id, order_ask.ticker, order_ask.order_id, order_ask.agent_id
+                ))
 
-        while order.quantity > 0 and best_price is not None:
+            if order.quantity > 0:
+                events.append(EventOrderModified(
+                    timestamp, trigger_event_id, order.ticker,
+                    order.order_id, order.quantity + quantity, order.quantity
+                ))
+                best_ask = lob.best_ask()
+            else:
+                events.append(EventOrderExecuted(
+                    timestamp, trigger_event_id, order.ticker, order.order_id, order.agent_id
+                ))
+                break
 
-            orders_to_match = limit_order_book.pop_orders_from_given_price_level_to_meet_demand(
-                price=best_price,
-                side=opposite_side,
-                demand=order.quantity
-            )
+        return events
 
-            for matched_order, matched_quantity in orders_to_match:
-                self.transactions.append({
-                    'buy_order_id': matched_order.order_id if order.side == OrderSide.BUY else order.order_id,
-                    'sell_order_id': order.order_id if order.side == OrderSide.BUY else matched_order.order_id,
-                    'price': best_price,
-                    'quantity': matched_quantity,
-                    'time': order.timestamp
-                })
-                print(f"Matched {matched_quantity} of Order {matched_order.order_id} with Market Order {order.order_id} at price {best_price}")
+    def process_market_sell_order(self, order: OrderMarket, lob: LimitOrderBook, timestamp: int, trigger_event_id: int) -> List[Event]:
+        events = []
+        best_bid = lob.best_bid()
 
-                order.quantity -= matched_quantity
+        while order.quantity > 0 and best_bid is not None:
 
-                if matched_quantity < matched_order.quantity:
-                    remaining_quantity = matched_order.quantity - matched_quantity
-                    matched_order.quantity = remaining_quantity
-                    limit_order_book.add(matched_order)
-                    print(f"Updated Order {matched_order.order_id} with remaining quantity {matched_order.quantity} to the book.")
+            order_bid, bid_events = lob.pop_top_bid_at_price(best_bid, timestamp, trigger_event_id)
+            events += bid_events
+            price = order_bid.price
+            quantity = min(order.quantity, order_bid.quantity)
+            events.append(EventTransaction(timestamp, trigger_event_id, order_bid.ticker, quantity, price, order.agent_id, order_bid.agent_id, order.order_id, order_bid.order_id))
+            order.quantity -= quantity
+            order_bid.quantity -= quantity
 
-            best_price = limit_order_book.best_ask() if order.side == OrderSide.BUY else limit_order_book.best_bid()
+            if order_bid.quantity > 0:
+                events.append(EventOrderModified(
+                    timestamp, trigger_event_id, order_bid.ticker,
+                    order_bid.order_id, order_bid.quantity + quantity, order_bid.quantity
+                ))
+                events += lob.add_bid(order_bid, timestamp, trigger_event_id)
+            else:
+                events.append(EventOrderExecuted(
+                    timestamp, trigger_event_id, order_bid.ticker, order_bid.order_id, order_bid.agent_id
+                ))
 
-        if order.quantity > 0:
-            print(f"Market Order {order.order_id} partially filled. Remaining quantity: {order.quantity} not fulfilled.")
+            if order.quantity > 0:
+                events.append(EventOrderModified(
+                    timestamp, trigger_event_id, order.ticker,
+                    order.order_id, order.quantity + quantity, order.quantity
+                ))
+                best_bid = lob.best_bid()
+            else:
+                events.append(EventOrderExecuted(
+                    timestamp, trigger_event_id, order.ticker, order.order_id, order.agent_id
+                ))
+                break
+
+        return events
+
+    def process_limit_buy_order(self, order: OrderLimit, lob: LimitOrderBook, timestamp: int, trigger_event_id: int) -> List[Event]:
+        events = []
+        best_ask = lob.best_ask()
+
+        if best_ask is None or best_ask > order.price:
+            events += lob.add_bid(order, timestamp, trigger_event_id)
+        else:
+            while order.quantity > 0 and best_ask is not None and best_ask <= order.price:
+                order_ask, ask_events = lob.pop_top_ask_at_price(best_ask, timestamp, trigger_event_id)
+                events += ask_events
+                price = order_ask.price
+                quantity = min(order.quantity, order_ask.quantity)
+                events.append(EventTransaction(timestamp, trigger_event_id, order_ask.ticker, quantity, price, order.agent_id, order_ask.agent_id, order.order_id, order_ask.order_id))
+                order.quantity -= quantity
+                order_ask.quantity -= quantity
+
+                if order_ask.quantity > 0:
+                    events.append(EventOrderModified(
+                        timestamp, trigger_event_id, order_ask.ticker,
+                        order_ask.order_id, order_ask.quantity + quantity, order_ask.quantity
+                    ))
+                    events += lob.add_ask(order_ask, timestamp, trigger_event_id)
+                else:
+                    events.append(EventOrderExecuted(
+                        timestamp, trigger_event_id, order_ask.ticker, order_ask.order_id, order_ask.agent_id
+                    ))
+
+                if order.quantity > 0:
+                    events.append(EventOrderModified(
+                        timestamp, trigger_event_id, order.ticker,
+                        order.order_id, order.quantity + quantity, order.quantity
+                    ))
+                    best_ask = lob.best_ask()
+                else:
+                    events.append(EventOrderExecuted(
+                        timestamp, trigger_event_id, order.ticker, order.order_id, order.agent_id
+                    ))
+                    break
+
+            if order.quantity > 0:
+                events += lob.add_bid(order, timestamp, trigger_event_id)
+
+        return events
+
+    def process_limit_sell_order(self, order: OrderLimit, lob: LimitOrderBook, timestamp: int, trigger_event_id: int) -> List[Event]:
+        events = []
+        best_bid = lob.best_bid()
+
+        if best_bid is None or best_bid < order.price:
+            events += lob.add_ask(order, timestamp, trigger_event_id)
+        else:
+            while order.quantity > 0 and best_bid is not None and best_bid >= order.price:
+                order_bid, bid_events = lob.pop_top_bid_at_price(best_bid, timestamp, trigger_event_id)
+                events += bid_events
+                price = order_bid.price
+                quantity = min(order.quantity, order_bid.quantity)
+                events.append(EventTransaction(timestamp, trigger_event_id, order.ticker, quantity, price, order.agent_id, order_bid.agent_id, order.order_id, order_bid.order_id))
+                order.quantity -= quantity
+                order_bid.quantity -= quantity
+
+                if order_bid.quantity > 0:
+                    events.append(EventOrderModified(
+                        timestamp, trigger_event_id, order_bid.ticker,
+                        order_bid.order_id, order_bid.quantity + quantity, order_bid.quantity
+                    ))
+                    events += lob.add_bid(order_bid, timestamp, trigger_event_id)
+                else:
+                    events.append(EventOrderExecuted(
+                        timestamp, trigger_event_id, order_bid.ticker, order_bid.order_id, order_bid.agent_id
+                    ))
+
+                if order.quantity > 0:
+                    events.append(EventOrderModified(
+                        timestamp, trigger_event_id, order.ticker,
+                        order.order_id, order.quantity + quantity, order.quantity
+                    ))
+                    best_bid = lob.best_bid()
+                else:
+                    events.append(EventOrderExecuted(
+                        timestamp, trigger_event_id, order.ticker, order.order_id, order.agent_id
+                    ))
+                    break
+
+            if order.quantity > 0:
+                events += lob.add_ask(order, timestamp, trigger_event_id)
+
+        return events

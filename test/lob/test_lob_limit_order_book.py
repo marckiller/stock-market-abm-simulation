@@ -1,214 +1,121 @@
 import unittest
-from src.lob.lob_limit_order_book import LimitOrderBook
+from src.order.order import OrderSide
 from src.order.order_limit import OrderLimit
-from src.order.order import Order
-from src.order.order import OrderSide, OrderType
-from src.lob.lob_price_level import PriceLevel
+from src.lob.lob_limit_order_book import LimitOrderBook
+from src.event.events.event_order_added import EventOrderAdded
+from src.event.events.event_order_removed import EventOrderRemoved
+from src.event.events.event_order_canceled import EventOrderCanceled
 
 class TestLimitOrderBook(unittest.TestCase):
 
     def setUp(self):
-        Order.next_id = 0
+        self.lob = LimitOrderBook()
+        OrderLimit.next_id = 0
+        EventOrderAdded.next_id = 0
+        EventOrderRemoved.next_id = 0
+        self.ticker = 'AAPL'
+        self.time = 1
+        self.timestamp = 100
+        self.trigger_event_id = 1
 
-    def test_add_order(self):
-        lob = LimitOrderBook()
-        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
-        lob.add(order1)
+    def test_add_bid(self):
+        order = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=10, side=OrderSide.BUY, time=self.time, order_id=1)
+        events = self.lob.add_bid(order, self.timestamp, self.trigger_event_id)
+        self.assertEqual(len(events), 1)
+        self.assertIsInstance(events[0], EventOrderAdded)
+        self.assertEqual(self.lob.best_bid(), 100.0)
+        self.assertEqual(self.lob.get_price_level_volume(100.0, OrderSide.BUY), 10)
 
-        self.assertEqual(lob.best_bid(), 100.0)
-        self.assertEqual(len(lob.sorted_bids), 1)
-        self.assertEqual(lob.sorted_bids[0], -100.0)
-        self.assertEqual(lob.get_price_level_volume(100.0, OrderSide.BUY), 50)
-
-    def test_add_multiple_orders(self):
-        lob = LimitOrderBook()
-        orders = [
-            OrderLimit(ticker='AAPL', price=101.0, quantity=50, side=OrderSide.BUY, time=1),
-            OrderLimit(ticker='AAPL', price=100.0, quantity=30, side=OrderSide.BUY, time=2),
-            OrderLimit(ticker='AAPL', price=102.0, quantity=20, side=OrderSide.BUY, time=3),
-        ]
-        for order in orders:
-            lob.add(order)
-
-        self.assertEqual(lob.best_bid(), 102.0)
-        self.assertEqual(lob.sorted_bids, [-102.0, -101.0, -100.0])
-        self.assertEqual(lob.get_price_level_volume(102.0, OrderSide.BUY), 20)
-
-    def test_remove_order_by_id(self):
-        lob = LimitOrderBook()
-        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.SELL, time=1)
-        order2 = OrderLimit(ticker='AAPL', price=101.0, quantity=30, side=OrderSide.SELL, time=2)
-        lob.add(order1)
-        lob.add(order2)
-
-        self.assertEqual(lob.best_ask(), 100.0)
-        lob.remove_order_by_id(order1.order_id)
-        self.assertEqual(lob.best_ask(), 101.0)
-        self.assertEqual(len(lob.sorted_asks), 1)
-        self.assertNotIn(100.0, lob.sorted_asks)
-
-    def test_pop_orders_from_given_price_level_to_meet_demand(self):
-        lob = LimitOrderBook()
-        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
-        lob.add(order1)
-
-        orders = lob.pop_orders_from_given_price_level_to_meet_demand(price=100.0, side=OrderSide.BUY, demand=30)
-        self.assertEqual(len(orders), 1)
-        self.assertEqual(orders[0], (order1, 30))
-        self.assertEqual(lob.get_price_level_volume(100.0, OrderSide.BUY), 0)
-        self.assertEqual(len(lob.sorted_bids), 1)
-        #self.assertIsNone(lob.best_bid())
-
-    def test_pop_orders_with_partial_fill(self):
-        lob = LimitOrderBook()
-        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.SELL, time=1)
-        lob.add(order1)
-
-        orders = lob.pop_orders_from_given_price_level_to_meet_demand(price=100.0, side=OrderSide.SELL, demand=70)
-        self.assertEqual(len(orders), 1)
-        self.assertEqual(orders[0], (order1, 50))
-        self.assertEqual(lob.get_price_level_volume(100.0, OrderSide.SELL), 0)
-        self.assertEqual(len(lob.sorted_asks), 0)
-        self.assertIsNone(lob.best_ask())
-
-    def test_order_map_consistency(self):
-        lob = LimitOrderBook()
-        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
-        lob.add(order1)
-
-        self.assertIn(order1.order_id, lob.order_map)
-        lob.remove_order_by_id(order1.order_id)
-        self.assertNotIn(order1.order_id, lob.order_map)
+    def test_add_ask(self):
+        order = OrderLimit(agent_id = 0, ticker=self.ticker, price=101.0, quantity=5, side=OrderSide.SELL, time=self.time, order_id=2)
+        events = self.lob.add_ask(order, self.timestamp, self.trigger_event_id)
+        self.assertEqual(len(events), 1)
+        self.assertIsInstance(events[0], EventOrderAdded)
+        self.assertEqual(self.lob.best_ask(), 101.0)
+        self.assertEqual(self.lob.get_price_level_volume(101.0, OrderSide.SELL), 5)
 
     def test_best_bid_and_ask(self):
-        lob = LimitOrderBook()
-        self.assertIsNone(lob.best_bid())
-        self.assertIsNone(lob.best_ask())
+        self.assertIsNone(self.lob.best_bid())
+        self.assertIsNone(self.lob.best_ask())
 
-        order_buy = OrderLimit(ticker='AAPL', price=99.0, quantity=50, side=OrderSide.BUY, time=1)
-        order_sell = OrderLimit(ticker='AAPL', price=101.0, quantity=50, side=OrderSide.SELL, time=1)
-        lob.add(order_buy)
-        lob.add(order_sell)
+        bid_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=10, side=OrderSide.BUY, time=self.time, order_id=1)
+        ask_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=101.0, quantity=5, side=OrderSide.SELL, time=self.time, order_id=2)
+        self.lob.add_bid(bid_order, self.timestamp, self.trigger_event_id)
+        self.lob.add_ask(ask_order, self.timestamp, self.trigger_event_id)
 
-        self.assertEqual(lob.best_bid(), 99.0)
-        self.assertEqual(lob.best_ask(), 101.0)
+        self.assertEqual(self.lob.best_bid(), 100.0)
+        self.assertEqual(self.lob.best_ask(), 101.0)
 
-    def test_get_order(self):
-        lob = LimitOrderBook()
-        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
-        lob.add(order1)
+    def test_pop_top_ask_at_price(self):
+        ask_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=101.0, quantity=5, side=OrderSide.SELL, time=self.time, order_id=2)
+        self.lob.add_ask(ask_order, self.timestamp, self.trigger_event_id)
+        order, events = self.lob.pop_top_ask_at_price(101.0, self.timestamp, self.trigger_event_id)
+        self.assertEqual(order.order_id, 2)
+        self.assertEqual(len(events), 1)
+        self.assertIsInstance(events[0], EventOrderRemoved)
+        self.assertIsNone(self.lob.best_ask())
 
-        retrieved_order = lob.get_order(order1.order_id)
-        self.assertEqual(retrieved_order, order1)
+    def test_cancel_order_by_id(self):
+        bid_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=10, side=OrderSide.BUY, time=self.time, order_id=1)
+        self.lob.add_bid(bid_order, self.timestamp, self.trigger_event_id)
+        events = self.lob.cancel_order_by_id(1, self.timestamp, self.trigger_event_id)
+        self.assertEqual(len(events), 2)
+        self.assertIsInstance(events[0], EventOrderCanceled)
+        self.assertIsInstance(events[1], EventOrderRemoved)
+        self.assertIsNone(self.lob.best_bid())
 
-    def test_remove_nonexistent_order(self):
-        lob = LimitOrderBook()
+    def test_get_price_level_volume(self):
+        bid_order1 = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=10, side=OrderSide.BUY, time=self.time, order_id=1)
+        bid_order2 = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=5, side=OrderSide.BUY, time=self.time, order_id=2)
+        self.lob.add_bid(bid_order1, self.timestamp, self.trigger_event_id)
+        self.lob.add_bid(bid_order2, self.timestamp, self.trigger_event_id)
+        volume = self.lob.get_price_level_volume(100.0, OrderSide.BUY)
+        self.assertEqual(volume, 15)
+
+    def test_best_bid_updates_after_cancel(self):
+        bid_order1 = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=10, side=OrderSide.BUY, time=self.time, order_id=1)
+        bid_order2 = OrderLimit(agent_id = 0, ticker=self.ticker, price=99.0, quantity=5, side=OrderSide.BUY, time=self.time, order_id=2)
+        self.lob.add_bid(bid_order1, self.timestamp, self.trigger_event_id)
+        self.lob.add_bid(bid_order2, self.timestamp, self.trigger_event_id)
+        self.assertEqual(self.lob.best_bid(), 100.0)
+        self.lob.cancel_order_by_id(1, self.timestamp, self.trigger_event_id)
+        self.assertEqual(self.lob.best_bid(), 99.0)
+
+    def test_add_bid_with_existing_price_level(self):
+        bid_order1 = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=10, side=OrderSide.BUY, time=self.time, order_id=1)
+        bid_order2 = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=15, side=OrderSide.BUY, time=self.time, order_id=2)
+        self.lob.add_bid(bid_order1, self.timestamp, self.trigger_event_id)
+        self.lob.add_bid(bid_order2, self.timestamp, self.trigger_event_id)
+        self.assertEqual(self.lob.get_price_level_volume(100.0, OrderSide.BUY), 25)
+
+    def test_add_ask_with_existing_price_level(self):
+        ask_order1 = OrderLimit(agent_id = 0, ticker=self.ticker, price=101.0, quantity=10, side=OrderSide.SELL, time=self.time, order_id=1)
+        ask_order2 = OrderLimit(agent_id = 0, ticker=self.ticker, price=101.0, quantity=15, side=OrderSide.SELL, time=self.time, order_id=2)
+        self.lob.add_ask(ask_order1, self.timestamp, self.trigger_event_id)
+        self.lob.add_ask(ask_order2, self.timestamp, self.trigger_event_id)
+        self.assertEqual(self.lob.get_price_level_volume(101.0, OrderSide.SELL), 25)
+
+    def test_order_map_updates_on_add_and_cancel(self):
+        bid_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=10, side=OrderSide.BUY, time=self.time, order_id=1)
+        self.lob.add_bid(bid_order, self.timestamp, self.trigger_event_id)
+        self.assertIn(1, self.lob.order_map)
+        self.lob.cancel_order_by_id(1, self.timestamp, self.trigger_event_id)
+        self.assertNotIn(1, self.lob.order_map)
+
+    def test_exception_on_invalid_order_side(self):
+        bid_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=10, side=OrderSide.SELL, time=self.time, order_id=1)
         with self.assertRaises(ValueError):
-            lob.remove_order_by_id(999)
-
-    def test_add_order_with_same_price(self):
-        lob = LimitOrderBook()
-        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.SELL, time=1)
-        order2 = OrderLimit(ticker='AAPL', price=100.0, quantity=30, side=OrderSide.SELL, time=2)
-        lob.add(order1)
-        lob.add(order2)
-
-        self.assertEqual(len(lob.asks), 1)
-        self.assertEqual(lob.get_price_level_volume(100.0, OrderSide.SELL), 80)
-        self.assertEqual(lob.sorted_asks, [100.0])
-
-    def test_pop_orders_with_multiple_price_levels(self):
-        lob = LimitOrderBook()
-        orders = [
-            OrderLimit(ticker='AAPL', price=101.0, quantity=50, side=OrderSide.BUY, time=1),
-            OrderLimit(ticker='AAPL', price=100.0, quantity=30, side=OrderSide.BUY, time=2),
-        ]
-        for order in orders:
-            lob.add(order)
-
-        orders_popped = lob.pop_orders_from_given_price_level_to_meet_demand(price=101.0, side=OrderSide.BUY, demand=50)
-        self.assertEqual(len(orders_popped), 1)
-        self.assertEqual(orders_popped[0], (orders[0], 50))
-        self.assertEqual(lob.best_bid(), 100.0)
-
-    def test_partial_fill_and_readd(self):
-        lob = LimitOrderBook()
-        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.SELL, time=1)
-        lob.add(order1)
-
-        #Pop 30 units from the order
-        orders = lob.pop_orders_from_given_price_level_to_meet_demand(price=100.0, side=OrderSide.SELL, demand=30)
-        self.assertEqual(orders[0], (order1, 30))
-        self.assertEqual(lob.get_price_level_volume(100.0, OrderSide.SELL), 0)
-        self.assertEqual(len(lob.sorted_asks), 1) #price level is keeped because partial order is expected back
-
-        #Simulate matching engine updating the order and re-adding it
-        remaining_order = OrderLimit(ticker='AAPL', price=100.0, quantity=20, side=OrderSide.SELL, time=1, order_id=order1.order_id)
-        lob.add(remaining_order)
-        self.assertEqual(lob.get_price_level_volume(100.0, OrderSide.SELL), 20)
-        self.assertEqual(len(lob.sorted_asks), 1)
-
-    def test_remove_price_level_after_order_removal(self):
-        lob = LimitOrderBook()
-        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
-        lob.add(order1)
-        lob.remove_order_by_id(order1.order_id)
-
-        self.assertEqual(len(lob.sorted_bids), 0)
-        self.assertIsNone(lob.best_bid())
-
-    def test_get_price_level_volume_nonexistent(self):
-        lob = LimitOrderBook()
-        volume = lob.get_price_level_volume(price=100.0, side=OrderSide.BUY)
-        self.assertEqual(volume, 0)
-
-    def test_order_map_after_partial_fill(self):
-        lob = LimitOrderBook()
-        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
-        lob.add(order1)
-
-        orders = lob.pop_orders_from_given_price_level_to_meet_demand(price=100.0, side=OrderSide.BUY, demand=30)
-        self.assertNotIn(order1.order_id, lob.order_map)
-
-        remaining_order = OrderLimit(ticker='AAPL', price=100.0, quantity=20, side=OrderSide.BUY, time=1, order_id=order1.order_id)
-        lob.add(remaining_order)
-        self.assertIn(order1.order_id, lob.order_map)
-
-    def test_repr(self):
-        lob = LimitOrderBook()
-        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
-        lob.add(order1)
-        repr_str = repr(lob)
-        self.assertIn("LimitOrderBook(bids=1, asks=0)", repr_str)
-
-    def test_negative_prices_in_sorted_bids(self):
-        lob = LimitOrderBook()
-        orders = [
-            OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1),
-            OrderLimit(ticker='AAPL', price=101.0, quantity=30, side=OrderSide.BUY, time=2),
-            OrderLimit(ticker='AAPL', price=99.0, quantity=20, side=OrderSide.BUY, time=3),
-        ]
-        for order in orders:
-            lob.add(order)
-
-        expected_sorted_bids = [-101.0, -100.0, -99.0]
-        self.assertEqual(lob.sorted_bids, expected_sorted_bids)
-        self.assertEqual(lob.best_bid(), 101.0)
-
-    def test_add_order_with_negative_price(self):
-        lob = LimitOrderBook()
+            self.lob.add_bid(bid_order, self.timestamp, self.trigger_event_id)
+        ask_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=101.0, quantity=5, side=OrderSide.BUY, time=self.time, order_id=2)
         with self.assertRaises(ValueError):
-            order = OrderLimit(ticker='AAPL', price=-100.0, quantity=50, side=OrderSide.BUY, time=1)
-            lob.add(order)
+            self.lob.add_ask(ask_order, self.timestamp, self.trigger_event_id)
 
-    def test_get_price_level_volume_with_negative_prices(self):
-        lob = LimitOrderBook()
-        order1 = OrderLimit(ticker='AAPL', price=100.0, quantity=50, side=OrderSide.BUY, time=1)
-        lob.add(order1)
-        volume = lob.get_price_level_volume(100.0, OrderSide.BUY)
-        self.assertEqual(volume, 50)
+    def test_exception_on_canceling_nonexistent_order(self):
+        with self.assertRaises(ValueError):
+            self.lob.cancel_order_by_id(999, self.timestamp, self.trigger_event_id)
 
-    def test_pop_orders_with_no_matching_price_level(self):
-        lob = LimitOrderBook()
-        orders = lob.pop_orders_from_given_price_level_to_meet_demand(price=100.0, side=OrderSide.BUY, demand=50)
-        self.assertEqual(len(orders), 0)
+    def test_last_popped_order_id_reset(self):
+        bid_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=10, side=OrderSide.BUY, time=self.time, order_id=1)
+        self.lob.last_popped_order_id = 1
+        self.lob.add_bid(bid_order, self.timestamp, self.trigger_event_id)
+        self.assertIsNone(self.lob.last_popped_order_id)

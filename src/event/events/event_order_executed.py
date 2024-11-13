@@ -19,5 +19,5 @@ class EventOrderExecuted(Event):
         return super().csv_attributes() + ["ticker", "order_id", "agent_id"]
     
     def create_message(self):
-        return super().create_message() + f"Order {self.order_id} {self.ticker} (issuer: {self.agent_id} ) executed."
+        return super().create_message() + f"{self.ticker}: Order {self.order_id} (issuer: {self.agent_id}) executed."
     

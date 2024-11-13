@@ -1,9 +1,9 @@
 from src.event.event import Event
 from src.event.event_types import EventType
 
-class EventOrderRemoved(Event):
+class EventOrderAddedBack(Event):
 
-    type = EventType.ORDER_REMOVED
+    type = EventType.ORDER_ADDED_BACK
     executable = False
 
     def __init__(self, timestamp: int, trigger_event_id: int, ticker: str, order_id: int, id: int = None):
@@ -19,4 +19,4 @@ class EventOrderRemoved(Event):
         return super().csv_attributes() + ["ticker", "order_id"]
     
     def create_message(self):
-        return super().create_message() + f"{self.ticker}: Order {self.order_id} removed."
+        return super().create_message() + f" {self.ticker}: Order {self.order_id} added back."

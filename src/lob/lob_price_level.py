@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Deque, Optional, Iterator, List, Tuple
+from typing import Deque, Optional, Iterator
 from src.order.order import OrderType
 from src.order.order_limit import OrderLimit
 
@@ -9,7 +9,6 @@ class PriceLevel:
         self.volume = 0
         self.price = price
         self.orders: Deque[OrderLimit] = deque()
-        self.last_partial_order_id: Optional[int] = None
 
     def add(self, order: OrderLimit):
         if order.type != OrderType.LIMIT:
@@ -17,14 +16,17 @@ class PriceLevel:
         if order.price != self.price:
             raise ValueError("PriceLevel accepts only orders with the same price")
 
-        if order.order_id == self.last_partial_order_id:
-            self.orders.appendleft(order)
-            
-        else:
-            self.orders.append(order)
+        self.orders.append(order)
+        self.number_of_orders += 1
+        self.volume += order.quantity
 
-        self.last_partial_order_id = None #give only 'one chance' for partial order to go back
+    def add_to_front(self, order: OrderLimit):
+        if order.type != OrderType.LIMIT:
+            raise ValueError("PriceLevel accepts only LIMIT orders")
+        if order.price != self.price:
+            raise ValueError("PriceLevel accepts only orders with the same price")
 
+        self.orders.appendleft(order)
         self.number_of_orders += 1
         self.volume += order.quantity
 
@@ -43,6 +45,15 @@ class PriceLevel:
         except IndexError:
             return None
 
+    def pop_first_order(self) -> Optional[OrderLimit]:
+        if not self.orders:
+            return None
+
+        order = self.orders.popleft()
+        self.number_of_orders -= 1
+        self.volume -= order.quantity
+        return order
+
     def is_empty(self) -> bool:
         return not bool(self.orders)
 
@@ -54,29 +65,6 @@ class PriceLevel:
 
     def __repr__(self) -> str:
         return f"PriceLevel(price={self.price}, orders={len(self.orders)}, volume={self.volume})"
-
-    def pop_orders_to_meet_demand(self, demand: int) -> List[Tuple[OrderLimit, int]]:
-        fulfilled_orders = []
-        remaining_demand = demand
-
-        while self.orders and remaining_demand > 0:
-            order = self.orders.popleft()
-            self.number_of_orders -= 1
-
-            if order.quantity <= remaining_demand:
-                fulfilled_orders.append((order, order.quantity))
-                remaining_demand -= order.quantity
-                self.volume -= order.quantity
-                
-            else:
-                fulfilled_orders.append((order, remaining_demand))
-                self.volume -= order.quantity
-                self.last_partial_order_id = order.order_id
-                remaining_demand = 0
-                return fulfilled_orders
-
-        self.last_partial_order_id = None
-        return fulfilled_orders
 
     def get_volume(self) -> int:
         return self.volume

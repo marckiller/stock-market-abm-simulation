@@ -10,7 +10,6 @@ class TestOrderRemovedEvent(unittest.TestCase):
         self.trigger_event_id = 42
         self.ticker = "AAPL"
         self.order_id = 101
-        self.agent_id = 1
         self.event_id = 999
 
         self.order_removed = EventOrderRemoved(
@@ -18,7 +17,6 @@ class TestOrderRemovedEvent(unittest.TestCase):
             trigger_event_id=self.trigger_event_id,
             ticker=self.ticker,
             order_id=self.order_id,
-            agent_id=self.agent_id,
             id=self.event_id
         )
 
@@ -27,14 +25,13 @@ class TestOrderRemovedEvent(unittest.TestCase):
         self.assertEqual(self.order_removed.trigger_event_id, self.trigger_event_id)
         self.assertEqual(self.order_removed.ticker, self.ticker)
         self.assertEqual(self.order_removed.order_id, self.order_id)
-        self.assertEqual(self.order_removed.agent_id, self.agent_id)
         self.assertEqual(self.order_removed.id, self.event_id)
         self.assertEqual(self.order_removed.type, EventType.ORDER_REMOVED)
         self.assertFalse(self.order_removed.executable)
 
     def test_create_message(self):
         expected_message = (
-            f"Order {self.order_id} removed for {self.agent_id} from {self.ticker}."
+            f"{self.ticker}: Order {self.order_id} removed."
         )
         self.assertEqual(self.order_removed.create_message(), expected_message)
         self.assertEqual(self.order_removed.message, expected_message)
@@ -42,7 +39,7 @@ class TestOrderRemovedEvent(unittest.TestCase):
     def test_csv_attributes(self):
         expected_attributes = [
             "type", "timestamp", "id", "trigger_event_id", "ticker",
-            "order_id", "agent_id"
+            "order_id"
         ]
         self.assertEqual(self.order_removed.csv_attributes(), expected_attributes)
 
@@ -54,7 +51,6 @@ class TestOrderRemovedEvent(unittest.TestCase):
         self.assertEqual(decoded_order_removed.trigger_event_id, self.trigger_event_id)
         self.assertEqual(decoded_order_removed.ticker, self.ticker)
         self.assertEqual(decoded_order_removed.order_id, self.order_id)
-        self.assertEqual(decoded_order_removed.agent_id, self.agent_id)
         self.assertEqual(decoded_order_removed.id, self.event_id)
         self.assertEqual(decoded_order_removed.type, EventType.ORDER_REMOVED)
 
@@ -64,7 +60,6 @@ class TestOrderRemovedEvent(unittest.TestCase):
             trigger_event_id=self.trigger_event_id,
             ticker=self.ticker,
             order_id=self.order_id,
-            agent_id=self.agent_id,
             id=self.event_id - 1
         )
         self.assertTrue(earlier_order_removed < self.order_removed)

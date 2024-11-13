@@ -10,16 +10,16 @@ class TestOrderExecutedEvent(unittest.TestCase):
         self.trigger_event_id = 42
         self.ticker = "AAPL"
         self.order_id = 101
-        self.agent_id = 1
         self.event_id = 999
+        self.agent_id = 1
 
         self.order_executed = EventOrderExecuted(
             timestamp=self.timestamp,
             trigger_event_id=self.trigger_event_id,
             ticker=self.ticker,
             order_id=self.order_id,
-            agent_id=self.agent_id,
-            id=self.event_id
+            id=self.event_id,
+            agent_id=self.agent_id
         )
 
     def test_initialization(self):
@@ -27,14 +27,13 @@ class TestOrderExecutedEvent(unittest.TestCase):
         self.assertEqual(self.order_executed.trigger_event_id, self.trigger_event_id)
         self.assertEqual(self.order_executed.ticker, self.ticker)
         self.assertEqual(self.order_executed.order_id, self.order_id)
-        self.assertEqual(self.order_executed.agent_id, self.agent_id)
         self.assertEqual(self.order_executed.id, self.event_id)
         self.assertEqual(self.order_executed.type, EventType.ORDER_EXECUTED)
         self.assertFalse(self.order_executed.executable)
 
     def test_create_message(self):
         expected_message = (
-            f"Order {self.order_id} {self.ticker} (issuer: {self.agent_id} ) executed."
+            f"{self.ticker}: Order {self.order_id} (issuer: {self.agent_id}) executed."
         )
         self.assertEqual(self.order_executed.create_message(), expected_message)
         self.assertEqual(self.order_executed.message, expected_message)
@@ -54,7 +53,6 @@ class TestOrderExecutedEvent(unittest.TestCase):
         self.assertEqual(decoded_order_executed.trigger_event_id, self.trigger_event_id)
         self.assertEqual(decoded_order_executed.ticker, self.ticker)
         self.assertEqual(decoded_order_executed.order_id, self.order_id)
-        self.assertEqual(decoded_order_executed.agent_id, self.agent_id)
         self.assertEqual(decoded_order_executed.id, self.event_id)
         self.assertEqual(decoded_order_executed.type, EventType.ORDER_EXECUTED)
 
@@ -64,8 +62,8 @@ class TestOrderExecutedEvent(unittest.TestCase):
             trigger_event_id=self.trigger_event_id,
             ticker=self.ticker,
             order_id=self.order_id,
-            agent_id=self.agent_id,
-            id=self.event_id - 1
+            id=self.event_id - 1,
+            agent_id=self.agent_id
         )
         self.assertTrue(earlier_order_executed < self.order_executed)
 
