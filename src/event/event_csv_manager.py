@@ -1,5 +1,5 @@
-from src.events.event import Event
-from src.events.event_registry import EventRegistry
+from src.event.event import Event
+from src.event.event_registry import EventRegistry
 
 class EventCsvManager:
     

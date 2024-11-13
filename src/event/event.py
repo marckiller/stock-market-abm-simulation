@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from src.events.event_types import EventType
-from src.events.event_meta import EventMeta
+from src.event.event_types import EventType
+from src.event.event_meta import EventMeta
 
 class Event(ABC, metaclass=EventMeta):
 

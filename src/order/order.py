@@ -20,7 +20,7 @@ class Order:
 
     next_id = 0
 
-    def __init__(self, quantity: int, side: OrderSide, time: int, order_id: int = None):
+    def __init__(self, agent_id: int, ticker: str, quantity: int, side: OrderSide, time: int, order_id: int = None):
         if self.ORDER_TYPE is None:
             raise ValueError("ORDER_TYPE must be set in child class.")
         
@@ -30,6 +30,8 @@ class Order:
             self.order_id = Order.next_id
             Order.next_id += 1 
 
+        self.agent_id = agent_id
+        self.ticker = ticker
         self.quantity = quantity
         self.side = side
         self.type = self.ORDER_TYPE

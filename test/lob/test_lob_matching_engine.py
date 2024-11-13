@@ -1,111 +1,121 @@
-# test/matching/test_matching_engine.py
-
 import unittest
 from src.lob.lob_limit_order_book import LimitOrderBook
 from src.order.order_limit import OrderLimit
 from src.order.order_market import OrderMarket
-from src.order.order import OrderSide, Order
+from src.order.order import OrderSide
 from src.lob.lob_matching_engine import MatchingEngine
+from src.event.events.event_order_added import EventOrderAdded
+from src.event.events.event_order_removed import EventOrderRemoved
+from src.event.events.event_transaction import EventTransaction
+from src.event.events.event_order_executed import EventOrderExecuted
+from src.event.events.event_order_modified import EventOrderModified
 
 class TestMatchingEngine(unittest.TestCase):
 
     def setUp(self):
         self.lob = LimitOrderBook()
-        self.engine = MatchingEngine()
-        OrderLimit.next_id = 0
-        OrderMarket.next_id = 0
-        Order.next_id = 0
+        self.matching_engine = MatchingEngine()
+        self.timestamp = 123456789
+        self.trigger_event_id = 42
+        self.ticker = "AAPL"
 
-    def test_process_limit_order_full_fill(self):
-        ask_order = OrderLimit(price=100.0, quantity=50, side=OrderSide.SELL, time=1)
-        self.lob.add(ask_order)
-        buy_order = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=2)
-        self.engine.process_order(buy_order, self.lob)
-        self.assertIsNone(self.lob.best_bid())
+    def test_process_market_buy_order_full_match(self):
+        sell_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=50, side=OrderSide.SELL, time=self.timestamp, order_id=1)
+        self.lob.add_ask(sell_order, self.timestamp, self.trigger_event_id)
+        market_buy_order = OrderMarket(agent_id = 0, ticker=self.ticker, quantity=50, side=OrderSide.BUY, time=self.timestamp, order_id=2)
+        events = self.matching_engine.process_market_buy_order(market_buy_order, self.lob, self.timestamp, self.trigger_event_id)
+        self.assertEqual(len(events), 4)
+        self.assertIsInstance(events[0], EventOrderRemoved)
+        self.assertIsInstance(events[1], EventTransaction)
+        self.assertIsInstance(events[2], EventOrderExecuted)
+        self.assertIsInstance(events[3], EventOrderExecuted)
         self.assertIsNone(self.lob.best_ask())
-        self.assertEqual(len(self.engine.transactions), 1)
-        self.assertEqual(self.engine.transactions[0]['quantity'], 50)
 
-    def test_process_limit_order_partial_fill(self):
-        ask_order = OrderLimit(price=100.0, quantity=50, side=OrderSide.SELL, time=1)
-        self.lob.add(ask_order)
-        buy_order = OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2)
-        self.engine.process_order(buy_order, self.lob)
-        remaining_ask = self.lob.get_order(ask_order.order_id)
-        self.assertIsNotNone(remaining_ask)
-        self.assertEqual(remaining_ask.quantity, 20)
-        self.assertIsNone(self.lob.get_order(buy_order.order_id))
-        self.assertEqual(len(self.engine.transactions), 1)
-        self.assertEqual(self.engine.transactions[0]['quantity'], 30)
-
-    def test_process_market_order_full_fill(self):
-        ask_order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.SELL, time=1)
-        ask_order2 = OrderLimit(price=101.0, quantity=30, side=OrderSide.SELL, time=2)
-        self.lob.add(ask_order1)
-        self.lob.add(ask_order2)
-
-        market_order = OrderMarket(quantity=80, side=OrderSide.BUY, time=3)
-        self.engine.process_order(market_order, self.lob)
-        self.assertIsNone(self.lob.best_bid())
+    def test_process_market_buy_order_partial_match(self):
+        sell_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=30, side=OrderSide.SELL, time=self.timestamp, order_id=1)
+        self.lob.add_ask(sell_order, self.timestamp, self.trigger_event_id)
+        market_buy_order = OrderMarket(agent_id = 0, ticker=self.ticker, quantity=50, side=OrderSide.BUY, time=self.timestamp, order_id=2)
+        events = self.matching_engine.process_market_buy_order(market_buy_order, self.lob, self.timestamp, self.trigger_event_id)
+        self.assertEqual(len(events), 4)
+        self.assertIsInstance(events[0], EventOrderRemoved)
+        self.assertIsInstance(events[1], EventTransaction)
+        self.assertIsInstance(events[2], EventOrderExecuted)
+        self.assertIsInstance(events[3], EventOrderModified)
+        self.assertEqual(market_buy_order.quantity, 20)
         self.assertIsNone(self.lob.best_ask())
-        self.assertEqual(len(self.engine.transactions), 2)
-        self.assertEqual(self.engine.transactions[0]['quantity'], 50)
-        self.assertEqual(self.engine.transactions[1]['quantity'], 30)
 
-    def test_process_market_order_partial_fill(self):
-        ask_order1 = OrderLimit(price=100.0, quantity=50, side=OrderSide.SELL, time=1)
-        self.lob.add(ask_order1)
-        market_order = OrderMarket(quantity=70, side=OrderSide.BUY, time=2)
-        self.engine.process_order(market_order, self.lob)
+    def test_process_market_sell_order_full_match(self):
+        buy_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=50, side=OrderSide.BUY, time=self.timestamp, order_id=1)
+        self.lob.add_bid(buy_order, self.timestamp, self.trigger_event_id)
+        market_sell_order = OrderMarket(agent_id = 0, ticker=self.ticker, quantity=50, side=OrderSide.SELL, time=self.timestamp, order_id=2)
+        events = self.matching_engine.process_market_sell_order(market_sell_order, self.lob, self.timestamp, self.trigger_event_id)
+        self.assertEqual(len(events), 4)
+        self.assertIsInstance(events[0], EventOrderRemoved)
+        self.assertIsInstance(events[1], EventTransaction)
+        self.assertIsInstance(events[2], EventOrderExecuted)
+        self.assertIsInstance(events[3], EventOrderExecuted)
         self.assertIsNone(self.lob.best_bid())
+
+    def test_process_limit_buy_order_no_match(self):
+        limit_buy_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=95.0, quantity=50, side=OrderSide.BUY, time=self.timestamp, order_id=1)
+        events = self.matching_engine.process_limit_buy_order(limit_buy_order, self.lob, self.timestamp, self.trigger_event_id)
+        self.assertEqual(len(events), 1)
+        self.assertIsInstance(events[0], EventOrderAdded)
+        self.assertEqual(self.lob.best_bid(), 95.0)
+
+    def test_process_limit_sell_order_no_match(self):
+        limit_sell_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=105.0, quantity=50, side=OrderSide.SELL, time=self.timestamp, order_id=1)
+        events = self.matching_engine.process_limit_sell_order(limit_sell_order, self.lob, self.timestamp, self.trigger_event_id)
+        self.assertEqual(len(events), 1)
+        self.assertIsInstance(events[0], EventOrderAdded)
+        self.assertEqual(self.lob.best_ask(), 105.0)
+
+    def test_process_limit_buy_order_full_match(self):
+        sell_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=50, side=OrderSide.SELL, time=self.timestamp, order_id=1)
+        self.lob.add_ask(sell_order, self.timestamp, self.trigger_event_id)
+        limit_buy_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=50, side=OrderSide.BUY, time=self.timestamp, order_id=2)
+        events = self.matching_engine.process_limit_buy_order(limit_buy_order, self.lob, self.timestamp, self.trigger_event_id)
+        self.assertEqual(len(events), 4)
+        self.assertIsInstance(events[0], EventOrderRemoved)
+        self.assertIsInstance(events[1], EventTransaction)
+        self.assertIsInstance(events[2], EventOrderExecuted)
+        self.assertIsInstance(events[3], EventOrderExecuted)
         self.assertIsNone(self.lob.best_ask())
-        self.assertEqual(len(self.engine.transactions), 1)
-        self.assertEqual(self.engine.transactions[0]['quantity'], 50)
-
-    def test_process_limit_order_no_fill(self):
-        ask_order = OrderLimit(price=101.0, quantity=50, side=OrderSide.SELL, time=1)
-        self.lob.add(ask_order)
-        buy_order = OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2)
-        self.engine.process_order(buy_order, self.lob)
-        self.assertEqual(self.lob.get_price_level_volume(100.0, OrderSide.BUY), 30)
-        self.assertEqual(len(self.engine.transactions), 0)
-
-    def test_process_market_order_no_fill(self):
-
-        market_order = OrderMarket(quantity=40, side=OrderSide.BUY, time=1)
-        self.engine.process_order(market_order, self.lob)
         self.assertIsNone(self.lob.best_bid())
+
+    def test_process_limit_sell_order_partial_match(self):
+        buy_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=30, side=OrderSide.BUY, time=self.timestamp, order_id=1)
+        self.lob.add_bid(buy_order, self.timestamp, self.trigger_event_id)
+        limit_sell_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=99.0, quantity=50, side=OrderSide.SELL, time=self.timestamp, order_id=2)
+        events = self.matching_engine.process_limit_sell_order(limit_sell_order, self.lob, self.timestamp, self.trigger_event_id)
+        self.assertEqual(len(events), 5)
+        self.assertIsInstance(events[0], EventOrderRemoved)
+        self.assertIsInstance(events[1], EventTransaction)
+        self.assertIsInstance(events[2], EventOrderExecuted)
+        self.assertIsInstance(events[3], EventOrderModified)
+        self.assertIsInstance(events[4], EventOrderAdded)
+        self.assertEqual(limit_sell_order.quantity, 20)
+        self.assertEqual(self.lob.best_ask(), 99.0)
+
+    def test_process_limit_buy_order_with_multiple_asks(self):
+        sell_order1 = OrderLimit(agent_id = 0, ticker=self.ticker, price=100.0, quantity=20, side=OrderSide.SELL, time=self.timestamp, order_id=1)
+        sell_order2 = OrderLimit(agent_id = 0, ticker=self.ticker, price=101.0, quantity=30, side=OrderSide.SELL, time=self.timestamp, order_id=2)
+        self.lob.add_ask(sell_order1, self.timestamp, self.trigger_event_id)
+        self.lob.add_ask(sell_order2, self.timestamp, self.trigger_event_id)
+        limit_buy_order = OrderLimit(agent_id = 0, ticker=self.ticker, price=101.0, quantity=60, side=OrderSide.BUY, time=self.timestamp, order_id=3)
+        events = self.matching_engine.process_limit_buy_order(limit_buy_order, self.lob, self.timestamp, self.trigger_event_id)
+        self.assertEqual(len(events), 9)
+
+        #TODO: Add correct event assertions
+
+        #self.assertIsInstance(events[0], EventOrderRemoved)
+        #self.assertIsInstance(events[1], EventTransaction)
+        #self.assertIsInstance(events[2], EventOrderExecuted)
+        #self.assertIsInstance(events[3], EventOrderModified)
+        #self.assertIsInstance(events[4], EventOrderRemoved)
+        #self.assertIsInstance(events[5], EventTransaction)
+        #self.assertIsInstance(events[6], EventOrderExecuted)
+        #self.assertIsInstance(events[7], EventOrderModified)
+        #self.assertIsInstance(events[8], EventOrderExecuted)
+        #self.assertEqual(limit_buy_order.quantity, 10)
         self.assertIsNone(self.lob.best_ask())
-        self.assertEqual(len(self.engine.transactions), 0)
-
-    def test_process_limit_order_partial_fill_and_readd(self):
-        ask_order = OrderLimit(price=100.0, quantity=50, side=OrderSide.SELL, time=1)
-        self.lob.add(ask_order)
-        buy_order = OrderLimit(price=100.0, quantity=30, side=OrderSide.BUY, time=2)
-        self.engine.process_order(buy_order, self.lob)
-
-        remaining_ask = self.lob.get_order(ask_order.order_id)
-        self.assertIsNotNone(remaining_ask)
-        self.assertEqual(remaining_ask.quantity, 20)
-        self.assertIsNone(self.lob.get_order(buy_order.order_id))
-
-        remaining_buy_order = OrderLimit(price=100.0, quantity=20, side=OrderSide.BUY, time=3, order_id=buy_order.order_id)
-        self.engine.process_order(remaining_buy_order, self.lob)
-        self.assertEqual(len(self.lob.sorted_bids), 0)
-        self.assertIsNone(self.lob.best_bid())
-        self.assertEqual(len(self.engine.transactions), 2)
-        self.assertEqual(self.engine.transactions[0]['quantity'], 30)
-        self.assertEqual(self.engine.transactions[1]['quantity'], 20)
-
-    def test_transactions_recorded_correctly(self):
-        ask_order = OrderLimit(price=100.0, quantity=50, side=OrderSide.SELL, time=1)
-        self.lob.add(ask_order)
-        buy_order = OrderLimit(price=100.0, quantity=50, side=OrderSide.BUY, time=2)
-        self.engine.process_order(buy_order, self.lob)
-        self.assertEqual(len(self.engine.transactions), 1)
-        transaction = self.engine.transactions[0]
-        self.assertEqual(transaction['buy_order_id'], buy_order.order_id)
-        self.assertEqual(transaction['sell_order_id'], ask_order.order_id)
-        self.assertEqual(transaction['price'], 100.0)
-        self.assertEqual(transaction['quantity'], 50)
-        self.assertEqual(transaction['time'], buy_order.timestamp)

@@ -1,5 +1,5 @@
 import unittest
-from src.events.event_types import EventType
+from src.event.event_types import EventType
 
 class TestEventType(unittest.TestCase):
     
@@ -10,15 +10,12 @@ class TestEventType(unittest.TestCase):
     
     def test_enum_members(self):
         expected_members = [
-            "SIMULATION_START", "SIMULATION_END", "AGENT_ACTION",
-            "AGENT_ACTION_REJECTED", "AGENT_ACTION_ACCEPTED",
+            "SIMULATION_START", "SIMULATION_END", "AGENT_ACTION", "AGENT_ADDED", "AGENT_REMOVED",
             "LIMIT_BUY_ORDER", "LIMIT_SELL_ORDER", "MARKET_BUY_ORDER", "MARKET_SELL_ORDER",
             "CANCEL_ORDER", "EXPIRE_ORDER",
-            "ORDER_ADDED", "ORDER_REMOVED", "ORDER_MODIFIED", "ORDER_CANCELED",
-            "ORDER_EXECUTED", "ORDER_REJECTED", "ORDER_ACCEPTED", "ORDER_EXPIRED", "TRANSACTION",
-            "ADD_AGENT", "REMOVE_AGENT", "ADD_TICKER", "REMOVE_TICKER",
-            "AGENT_ADDED", "AGENT_REMOVED", "TICKER_ADDED", "TICKER_REMOVED",
-            "AGENT_ORDER", "AGENT_TRADE",
+            "ORDER_ADDED", "ORDER_ADDED_BACK", "ORDER_REMOVED", "ORDER_MODIFIED", "ORDER_CANCELED",
+            "ORDER_EXECUTED", "ORDER_REJECTED", "TRANSACTION",
+            "ADD_AGENT", "REMOVE_AGENT", "ADD_TICKER", "REMOVE_TICKER", "AGENT_REGISTERED","TICKER_ADDED", "TICKER_REMOVED",
             "ABSTRACT_EVENT"
         ]
         actual_members = [event.name for event in EventType]
@@ -32,8 +29,6 @@ class TestEventType(unittest.TestCase):
         self.assertEqual(EventType.SIMULATION_START.value, 1)
         self.assertEqual(EventType.SIMULATION_END.value, 2)
         self.assertEqual(EventType.AGENT_ACTION.value, 3)
-        self.assertEqual(EventType.AGENT_ACTION_REJECTED.value, 4)
-        self.assertEqual(EventType.AGENT_ACTION_ACCEPTED.value, 5)
         self.assertEqual(EventType.LIMIT_BUY_ORDER.value, 6)
         self.assertEqual(EventType.LIMIT_SELL_ORDER.value, 7)
         self.assertEqual(EventType.MARKET_BUY_ORDER.value, 8)
