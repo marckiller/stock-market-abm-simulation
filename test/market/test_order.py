@@ -33,14 +33,14 @@ class TestOrder(unittest.TestCase):
     def test_modify_order_quantity(self):
         order = Order(order_id=4, agent_id=103, timestamp=1633060000.0, 
                       side='buy', order_type='market', quantity=20)
-        order.modify_order(new_quantity=30)
+        order.modify_quantity(new_quantity=30)
         self.assertEqual(order.quantity, 30)
 
     def test_modify_order_no_quantity(self):
         order = Order(order_id=5, agent_id=104, timestamp=1633061000.0, 
                       side='sell', order_type='limit', quantity=40, price=15.0)
         with self.assertRaises(ValueError):
-            order.modify_order()
+            order.modify_quantity()
 
     def test_str_representation(self):
         order = Order(order_id=6, agent_id=105, timestamp=1633062000.0, 
