@@ -3,8 +3,9 @@ from src.agents.agent_time_activated import TimeActivatedAgent
 from src.agents.agent_condition_activated import ConditionActivatedAgent
 
 class AgentManager:
-    def __init__(self, market, indicator_manager):
+    def __init__(self, market, market_data_manager, indicator_manager):
         self.market = market
+        self.market_data_manager = market_data_manager
         self.indicator_manager = indicator_manager
         self.agents = {}
         self.time_queue = []
