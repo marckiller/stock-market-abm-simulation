@@ -5,3 +5,6 @@ class TimeActivatedAgent(BaseAgent):
 
     def __init__(self):
         pass
+
+    def next_activation_time(self):
+        pass
