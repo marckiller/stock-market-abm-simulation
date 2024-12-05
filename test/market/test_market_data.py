@@ -1,11 +1,11 @@
 import unittest
-from src.market.market_data import MarketData
+from src.managers.market_data_manager import MarketDataManager
 
 class TestMarketData(unittest.TestCase):
 
     def setUp(self):
         self.ohlcv_periods = [10, 60]
-        self.market_data = MarketData(ohlcv_periods=self.ohlcv_periods, store_tick_data=True, max_ticks=100)
+        self.market_data = MarketDataManager(ohlcv_periods=self.ohlcv_periods, store_tick_data=True, max_ticks=100)
 
     def test_initialization(self):
         self.assertEqual(len(self.market_data.ohlcv_periods), 2)
@@ -88,7 +88,7 @@ class TestMarketData(unittest.TestCase):
         self.assertEqual(recent_ticks[2]['time'], 4)
 
     def test_no_tick_storage(self):
-        market_data_no_ticks = MarketData(ohlcv_periods=self.ohlcv_periods, store_tick_data=False)
+        market_data_no_ticks = MarketDataManager(ohlcv_periods=self.ohlcv_periods, store_tick_data=False)
         market_data_no_ticks.add_tick(
             time=1, transaction_price=100.5, best_bid=100.0, best_ask=101.0,
             transaction_volume=10, bid_volume=20, ask_volume=15

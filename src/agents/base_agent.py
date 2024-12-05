@@ -9,7 +9,9 @@ class BaseAgent(ABC):
         self.active = True
         self.holdings = 0  #quantity of stock held
         
-        #order_id -> {'side': str, 'price': float, 'quantity': int}
+        #order_id -> {order_id: order} 
+        #giveing acces for agent order reference is controversial
+        #but simplifies the simulation
         self.pending_limit_orders = {}
     
     @abstractmethod
