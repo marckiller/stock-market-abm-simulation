@@ -44,19 +44,19 @@ class AgentManager:
 
     #handing events that effect agents assets
 
-    def handle_transaction(self, transaciton: Transaction):
+    def handle_transaction(self, transaction: Transaction):
         """money and holdings transfer between buyer and seller"""
 
-        buyer = self.get_agent(transaciton.buyer_id)
-        seller = self.get_agent(transaciton.seller_id)
+        buyer = self.get_agent(transaction.buyer_id)
+        seller = self.get_agent(transaction.seller_id)
 
         if buyer:
             buyer.deduct_cash(transaction.price * transaction.quantity)
-            buyer.add_holdings(transaction.quantity)
+            buyer.add_holding(transaction.quantity)
 
         if seller:
             seller.add_cash(transaction.price * transaction.quantity)
-            seller.deduct_holdings(transaction.quantity)
+            seller.deduct_holding(transaction.quantity)
 
     def handle_order_executed(self, order_id, order_type, executed_quantity):
 
@@ -72,4 +72,9 @@ class AgentManager:
         agent = self.get_agent(order.agent_id)
         if agent:
             agent.pending_limit_orders[order.order_id] = order
+
+    def handle_order_cancelled(self, order_id):
+        agent = self.get_agent(order_id)
+        if agent:
+            agent.remove_pending_limit_order(order_id)
 

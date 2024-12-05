@@ -139,3 +139,6 @@ class MarketDataManager:
 
         # Return the last `window` close prices
         return ohlcv_df['close'].iloc[-window:]
+    
+    def get_last_transaction_price(self) -> Optional[float]:
+        return self.last_transaction_price

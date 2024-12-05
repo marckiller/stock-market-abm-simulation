@@ -6,12 +6,13 @@ from src.market.matching_engine import MatchingEngine
 from src.market.events import OrderCancelledEvent, OrderExecutedEvent, LimitOrderStoredEvent, TransactionEvent
 
 # Managers
-from managers.agent_manager import AgentManager
-from managers.indicator_manager import IndicatorManager
-from managers.market_data_manager import MarketDataManager
+from src.managers.agent_manager import AgentManager
+from src.managers.indicator_manager import IndicatorManager
+from src.managers.market_data_manager import MarketDataManager
 
 class Market:
     def __init__(self, config):
+
         self.event_bus = EventBus()
         self.order_book = LimitOrderBook()
         self.matching_engine = MatchingEngine(self.event_bus)
@@ -22,11 +23,13 @@ class Market:
         )
         self.indicator_manager = IndicatorManager(self.market_data)
         self.agent_manager = AgentManager(self, self.market_data, self.indicator_manager)
-
         self.event_bus.subscribe('transaction', self.handle_transaction)
         self.event_bus.subscribe('limit_order_stored', self.handle_order_stored)
         self.event_bus.subscribe('order_executed', self.handle_order_executed)
         self.event_bus.subscribe('order_cancelled', self.handle_order_cancelled)
+
+        self.order_id_counter = 0  # Licznik ID zleceń
+        self.time = 0
 
     def register_agent(self, agent):
         self.agent_manager.register_agent(agent)
@@ -38,6 +41,19 @@ class Market:
     def cancel_order(self, order_id: str):
         timestamp = self.get_current_time()
         self.matching_engine.cancel_order(order_id, self.order_book, timestamp)
+
+    def place_order(self, agent_id, order_type, side, quantity, price=None):
+        self.order_id_counter += 1
+        order = Order(
+            order_id=self.order_id_counter,
+            agent_id=agent_id,
+            timestamp=self.get_current_time(),
+            side=side,
+            order_type=order_type,
+            quantity=quantity,
+            price=price
+        )
+        self.submit_order(order)
 
     def handle_transaction(self, event: TransactionEvent):
         transaction = event.transaction
@@ -87,4 +103,4 @@ class Market:
         self.agent_manager.step(current_time)
 
     def get_current_time(self) -> int:
-        return 0
+        return self.time
