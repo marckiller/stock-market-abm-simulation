@@ -10,8 +10,8 @@ class BaseAgent(ABC):
         self.holdings = 0  #quantity of stock held
         
         #order_id -> {order_id: order} 
-        #giveing acces for agent order reference is controversial
-        #but simplifies the simulation
+        #keep reference to order stored in the book to 
+        #skip the process of manual modification of pending orders
         self.pending_limit_orders = {}
     
     @abstractmethod
