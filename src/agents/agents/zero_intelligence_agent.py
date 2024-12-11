@@ -2,10 +2,6 @@ import random
 import numpy as np
 from src.agents.agent_time_activated import TimeActivatedAgent
 
-import random
-import numpy as np
-from src.agents.agent_time_activated import TimeActivatedAgent
-
 class ZeroIntelligenceAgent(TimeActivatedAgent):
     def __init__(self, agent_id, initial_cash, market, max_order_size, limit_order_rate, market_order_rate, cancellation_rate, activation_rate):
         """
@@ -29,16 +25,30 @@ class ZeroIntelligenceAgent(TimeActivatedAgent):
         self.next_activation_time = self._generate_next_activation_time()
 
     def activate(self, current_time):
-        if random.random() < self.limit_order_rate:
+        """
+        Activates the agent and performs one action based on probabilities:
+        - Places a limit order.
+        - Places a market order.
+        - Cancels a limit order.
+        """
+        # Normalize probabilities to ensure only one action is chosen
+        total_rate = self.limit_order_rate + self.market_order_rate + self.cancellation_rate
+        rand = random.uniform(0, total_rate)
+
+        if rand < self.limit_order_rate:
             self.place_limit_order()
-        if random.random() < self.market_order_rate:
+        elif rand < self.limit_order_rate + self.market_order_rate:
             self.place_market_order()
-        if random.random() < self.cancellation_rate:
+        else:
             self.cancel_random_limit_order()
 
+        # Schedule next activation
         self.next_activation_time = self._generate_next_activation_time()
 
     def place_limit_order(self):
+        """
+        Places a limit order with random attributes.
+        """
         order_size = random.randint(1, self.max_order_size)
         side = random.choice(['buy', 'sell'])
 
@@ -50,7 +60,7 @@ class ZeroIntelligenceAgent(TimeActivatedAgent):
             if best_ask is not None:
                 price = random.uniform(max(0, best_ask - 10), best_ask)
             elif last_transaction_price is not None:
-                price = random.uniform(max(0, last_transaction_price - 5), last_transaction_price + 550)
+                price = random.uniform(max(0, last_transaction_price - 5), last_transaction_price + 5)
             else:
                 price = random.uniform(50, 150)
         else:
@@ -70,6 +80,9 @@ class ZeroIntelligenceAgent(TimeActivatedAgent):
         )
 
     def place_market_order(self):
+        """
+        Places a market order with random size.
+        """
         order_size = random.randint(1, self.max_order_size)
         side = random.choice(['buy', 'sell'])
 
@@ -81,6 +94,9 @@ class ZeroIntelligenceAgent(TimeActivatedAgent):
         )
 
     def cancel_random_limit_order(self):
+        """
+        Cancels a random limit order from the agent's pending orders.
+        """
         if not self.pending_limit_orders:
             return
 
