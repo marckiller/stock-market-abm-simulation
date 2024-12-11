@@ -9,12 +9,10 @@ def create_virtual_environment(env_name='venv'):
     else:
         print(f"Virtual environment '{env_name}' already exists.")
 
-
 def activate_virtual_environment(env_name='venv'):
     activate_venv_command = f"source {env_name}/bin/activate"
     print(f"To activate venv run command: {activate_venv_command}")
     return activate_venv_command
-
 
 def install_requirements(env_name='venv'):
     requirements_file = 'requirements.txt'
