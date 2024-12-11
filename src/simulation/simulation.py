@@ -1,5 +1,8 @@
 from src.market.market import Market
+
 from src.agents.agents.zero_intelligence_agent import ZeroIntelligenceAgent
+from src.agents.agents.fundamentalist_agent import FundamentalistAgent
+from src.agents.agents.chartist_agent import ChartistAgent
 
 class Simulation:
     def __init__(self, config):
@@ -28,6 +31,26 @@ class Simulation:
                 cancellation_rate=agent_config["cancellation_rate"],
                 activation_rate=agent_config["activation_rate"]
             )
+        
+        if agent_config["type"] == "fundamentalist":
+            return FundamentalistAgent(
+                agent_id=agent_config["id"],
+                initial_cash=agent_config["cash"],
+                market=self.market,
+                fundamental_value=agent_config["fundamental_value"],
+                activation_rate=agent_config["activation_rate"],
+                max_order_size=agent_config["max_order_size"]
+            )
+        elif agent_config["type"] == "chartist":
+            return ChartistAgent(
+                agent_id=agent_config["id"],
+                initial_cash=agent_config["cash"],
+                market=self.market,
+                activation_rate=agent_config["activation_rate"],
+                max_order_size=agent_config["max_order_size"],
+                window=agent_config["window"]
+            )
+
         else:
                 raise ValueError(f"Unknown agent type: {agent_config['type']}")
 
@@ -40,7 +63,9 @@ class Simulation:
             self.current_time = next_time
             self.market.time = self.current_time
 
-            print(f"TIME: {self.current_time}")
+            if self.current_time % 1000 == 0:
+                print(f"Time: {self.current_time} ({self.current_time / self.max_time:.2%})")
+
             self.market.agent_manager.step(self.current_time)
 
         print("END OF SIMULATION")
