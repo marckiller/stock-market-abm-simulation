@@ -3,3 +3,5 @@ matplotlib==3.8.2
 pandas==2.2.3
 sortedcontainers==2.4.0
 mplfinance==0.12.10b0
+scipy == 1.14.1
+statsmodels ==0.14.4
