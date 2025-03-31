@@ -15,7 +15,7 @@ This project simulates a stock market using agent-based modeling. Below are the 
    git clone <repository-url>
    cd <repository-directory>
    ```
-2. **Install Dependiencies:**
+2. **Install Dependencies:**
 Ensure you have pip installed. Then, install the required libraries using the requirements.txt file:
    ```bash
    pip install -r requirements.txt
