@@ -3,7 +3,7 @@ import numpy as np
 from typing import Optional, List
 
 class MarketDataManager:
-    def __init__(self, ohlcv_periods: List[int], store_tick_data: bool = False, max_ticks: int = 10000000):
+    def __init__(self, ohlcv_periods: List[int], store_tick_data: bool = True, max_ticks: int = 3000):
         """
         Initializes the MarketData object.
 
@@ -71,27 +71,28 @@ class MarketDataManager:
         for period in self.ohlcv_periods:
             self.update_ohlcv(time, transaction_price or 0.0, transaction_volume or 0, period)
 
-    def update_ohlcv(self, time: int, transaction_price: float, transaction_volume: int, period: int):
+    def update_ohlcv(self, time: int, transaction_price: Optional[float], transaction_volume: int, period: int):
         current_interval = time // period
-
         current_bar = self.current_bars[period]
+
         if current_bar is None or current_bar['time'] < current_interval * period:
             if current_bar:
                 current_bar_df = pd.DataFrame([current_bar])
                 self.ohlcv_data[period] = pd.concat([self.ohlcv_data[period], current_bar_df], ignore_index=True)
 
+            initial_price = transaction_price or self.last_transaction_price or self.best_bid or self.best_ask or 0.0
             self.current_bars[period] = {
                 'time': current_interval * period,
-                'open': transaction_price,
-                'high': transaction_price,
-                'low': transaction_price,
-                'close': transaction_price,
+                'open': initial_price,
+                'high': initial_price,
+                'low': initial_price,
+                'close': initial_price,
                 'volume': transaction_volume
             }
         else:
-            current_bar['high'] = max(current_bar['high'], transaction_price)
-            current_bar['low'] = min(current_bar['low'], transaction_price)
-            current_bar['close'] = transaction_price
+            current_bar['high'] = max(current_bar['high'], transaction_price or self.best_bid or self.best_ask or 0.0)
+            current_bar['low'] = min(current_bar['low'], transaction_price or self.best_bid or self.best_ask or float('inf'))
+            current_bar['close'] = transaction_price or self.last_transaction_price or self.best_bid or self.best_ask or current_bar['close']
             current_bar['volume'] += transaction_volume
 
 
