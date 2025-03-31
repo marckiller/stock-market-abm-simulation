@@ -53,7 +53,7 @@ config = {
         }
     ] + fundamentalists,
     "time_step": 1,
-    "max_time": 5000000
+    "max_time": 10000
 }
 
 # Symulacja
