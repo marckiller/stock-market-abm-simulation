@@ -22,21 +22,21 @@ class ChartistAgent(TimeActivatedAgent):
         if mid_price is None:
             mid_price = self.market.market_data.get_last_transaction_price() or 100.0
 
-        if ewma > mid_price + 0.5:
-            order_size = random.randint(1, self.max_order_size)
-            self.market.place_order(
-                agent_id=self.agent_id,
-                order_type='limit',
-                side='sell',
-                quantity=order_size,
-                price=mid_price
-            )
-        elif ewma < mid_price - 0.5:
+        if mid_price > ewma + 0.5:
             order_size = random.randint(1, self.max_order_size)
             self.market.place_order(
                 agent_id=self.agent_id,
                 order_type='limit',
                 side='buy',
+                quantity=order_size,
+                price=mid_price
+            )
+        elif mid_price < ewma - 0.5:
+            order_size = random.randint(1, self.max_order_size)
+            self.market.place_order(
+                agent_id=self.agent_id,
+                order_type='limit',
+                side='sell',
                 quantity=order_size,
                 price=mid_price
             )
