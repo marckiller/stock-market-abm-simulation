@@ -1,0 +1,8 @@
+num_price_observations: 4493
+num_returns: 4492
+mean_return: -6.454957917953877e-07
+std_return: 0.0011576494572854608
+return_autocorr_lag_1: -0.38259556689435925
+abs_return_autocorr_lag_1: 0.2051453929456025
+excess_kurtosis: 1.1815696644047176
+tail_ratio_3_sigma: 3.9579520642381807
