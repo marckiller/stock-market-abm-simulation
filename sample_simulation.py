@@ -36,7 +36,7 @@ config = {
             "activation_rate": 0.4
         },
         {
-            "id": 4,
+            "id": 5,
             "type": "chartist",
             "cash": 0,
             "activation_rate": 0.1,

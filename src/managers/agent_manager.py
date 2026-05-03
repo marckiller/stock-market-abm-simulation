@@ -58,23 +58,19 @@ class AgentManager:
             seller.add_cash(transaction.price * transaction.quantity)
             seller.deduct_holding(transaction.quantity)
 
-    def handle_order_executed(self, order_id, order_type, executed_quantity):
-
-        #TODO: 
-        agent = self.get_agent(order_id)
+    def handle_order_executed(self, order, executed_quantity):
+        agent = self.get_agent(order.agent_id)
         if agent:
-            order = agent.pending_limit_orders.get(order_id)
-            if order:
-                if order.quantity == 0:
-                    agent.remove_pending_limit_order(order_id)
+            pending_order = agent.pending_limit_orders.get(order.order_id)
+            if pending_order and pending_order.quantity == 0:
+                agent.remove_pending_limit_order(order.order_id)
     
     def handle_order_stored(self, order):
         agent = self.get_agent(order.agent_id)
         if agent:
             agent.pending_limit_orders[order.order_id] = order
 
-    def handle_order_cancelled(self, order_id):
-        agent = self.get_agent(order_id)
+    def handle_order_cancelled(self, order):
+        agent = self.get_agent(order.agent_id)
         if agent:
-            agent.remove_pending_limit_order(order_id)
-
+            agent.remove_pending_limit_order(order.order_id)

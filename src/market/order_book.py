@@ -93,15 +93,14 @@ class LimitOrderBook:
         old_quantity = order.quantity
         price_level.modify_order(order_id, new_quantity)
 
+        if order.side == 'buy':
+            self.bids_total_volume += (new_quantity - old_quantity)
+        else:
+            self.asks_total_volume += (new_quantity - old_quantity)
+
         if new_quantity == 0:
             sorted_prices = self.sorted_bids if order.side == 'buy' else self.sorted_asks
             self._remove_order_and_cleanup(order, levels, price_level, sorted_prices)
-
-        else:
-            if order.side == 'buy':
-                self.bids_total_volume += (new_quantity - old_quantity)
-            else:
-                self.asks_total_volume += (new_quantity - old_quantity)
 
         return order
 
