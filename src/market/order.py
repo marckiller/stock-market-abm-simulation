@@ -21,4 +21,7 @@ class Order:
             raise ValueError("New quantity must be provided.")
 
     def __str__(self) -> str:
-        return f'Order {self.order_id} ({self.side} {self.quantity} units) from agent {self.agent_id} at price {self.price}'
+        description = f'Order {self.order_id} ({self.side} {self.quantity} units) from agent {self.agent_id}'
+        if self.price is not None:
+            description += f' at price {self.price}'
+        return description

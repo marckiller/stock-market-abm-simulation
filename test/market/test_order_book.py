@@ -75,6 +75,14 @@ class TestLimitOrderBook(unittest.TestCase):
         self.assertEqual(self.order_book.orders_by_id[order.order_id].quantity, 5)
         self.assertEqual(self.order_book.get_total_bid_volume(), 5)
 
+    def test_modify_order_to_zero_updates_total_volume(self):
+        order = Order(1, 2, 1234567890, 'buy', 'limit', 10, 100.5)
+        self.order_book.add_order(order)
+        self.order_book.modify_order(order.order_id, 0)
+
+        self.assertNotIn(order.order_id, self.order_book.orders_by_id)
+        self.assertEqual(self.order_book.get_total_bid_volume(), 0)
+
     def test_get_best_bid_ask(self):
         order1 = Order(1, 2, 1234567890, 'buy', 'limit', 10, 100.5)
         order2 = Order(2, 3, 1234567891, 'sell', 'limit', 5, 101.5)

@@ -84,11 +84,11 @@ class Market:
     def handle_order_executed(self, event: OrderExecutedEvent):
         order = event.order
         executed_quantity = event.executed_quantity
-        self.agent_manager.handle_order_executed(order.order_id, order.order_type, executed_quantity)
+        self.agent_manager.handle_order_executed(order, executed_quantity)
 
     def handle_order_cancelled(self, event: OrderCancelledEvent):
         order = event.order
-        self.agent_manager.handle_order_cancelled(order.order_id)
+        self.agent_manager.handle_order_cancelled(order)
         self.market_data.add_tick(
             time=event.timestamp,
             transaction_price=None,  # Brak transakcji
