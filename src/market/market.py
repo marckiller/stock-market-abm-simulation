@@ -4,6 +4,7 @@ from src.market.order import Order
 from src.market.order_book import LimitOrderBook
 from src.market.matching_engine import MatchingEngine
 from src.market.events import OrderCancelledEvent, OrderExecutedEvent, LimitOrderStoredEvent, TransactionEvent
+from src.market.event_logger import EventLogger
 
 # Managers
 from src.managers.agent_manager import AgentManager
@@ -27,6 +28,7 @@ class Market:
         self.event_bus.subscribe('limit_order_stored', self.handle_order_stored)
         self.event_bus.subscribe('order_executed', self.handle_order_executed)
         self.event_bus.subscribe('order_cancelled', self.handle_order_cancelled)
+        self.event_logger = EventLogger(self.event_bus)
 
         self.order_id_counter = 0  # Licznik ID zleceń
         self.time = 0
@@ -104,3 +106,6 @@ class Market:
 
     def get_current_time(self) -> int:
         return self.time
+
+    def get_event_log(self):
+        return self.event_logger.to_records()
