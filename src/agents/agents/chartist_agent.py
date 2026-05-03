@@ -3,10 +3,11 @@ from src.agents.agent_time_activated import TimeActivatedAgent
 from src.indicators.ema import calculate_ema
 
 class ChartistAgent(TimeActivatedAgent):
-    def __init__(self, agent_id, initial_cash, market, activation_rate, max_order_size, window):
+    def __init__(self, agent_id, initial_cash, market, activation_rate, max_order_size, window, threshold=0.5):
         super().__init__(agent_id, initial_cash, market, market.indicator_manager, activation_rate)
         self.max_order_size = max_order_size
         self.window = window
+        self.threshold = threshold
 
     def activate(self, current_time):
         price_history = self.market.market_data.get_price_history(period=1000, window=self.window)
@@ -22,7 +23,7 @@ class ChartistAgent(TimeActivatedAgent):
         if mid_price is None:
             mid_price = self.market.market_data.get_last_transaction_price() or 100.0
 
-        if mid_price > ewma + 0.5:
+        if mid_price > ewma + self.threshold:
             order_size = random.randint(1, self.max_order_size)
             self.market.place_order(
                 agent_id=self.agent_id,
@@ -31,7 +32,7 @@ class ChartistAgent(TimeActivatedAgent):
                 quantity=order_size,
                 price=mid_price
             )
-        elif mid_price < ewma - 0.5:
+        elif mid_price < ewma - self.threshold:
             order_size = random.randint(1, self.max_order_size)
             self.market.place_order(
                 agent_id=self.agent_id,

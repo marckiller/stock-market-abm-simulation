@@ -48,7 +48,8 @@ class Simulation:
                 market=self.market,
                 activation_rate=agent_config["activation_rate"],
                 max_order_size=agent_config["max_order_size"],
-                window=agent_config["window"]
+                window=agent_config["window"],
+                threshold=agent_config.get("threshold", 0.5)
             )
 
         else:
